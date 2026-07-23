@@ -141,4 +141,34 @@ class SimulationControllerTest {
         assertNotEquals(0L, controller.frame.value.id)
         controller.dispose()
     }
+
+    @Test
+    fun reset_sameSeed_reproducesAfterSteps() = runTest {
+        val seed = 42L
+        val a = SimulationController(initialSeed = seed, scope = this, initialSpeed = 1)
+        repeat(12) { a.stepOnce() }
+        val mid = a.frame.value.snapshot
+
+        a.reset(seed)
+        assertEquals(0, a.frame.value.snapshot.day)
+        assertEquals(0, a.frame.value.snapshot.hour)
+        assertEquals(seed, a.seed.value)
+
+        repeat(12) { a.stepOnce() }
+        assertEquals(mid, a.frame.value.snapshot)
+
+        a.dispose()
+    }
+
+    @Test
+    fun higherSpeed_hasShorterDelay() = runTest {
+        val c = SimulationController(scope = this, baseDelayMs = 1000L, initialSpeed = 1)
+        c.setSpeed(1)
+        val d1 = c.delayMsForCurrentSpeed()
+        c.setSpeed(10)
+        val d10 = c.delayMsForCurrentSpeed()
+        assertTrue(d10 < d1)
+        assertEquals(100L, d10) // 1000/10
+        c.dispose()
+    }
 }

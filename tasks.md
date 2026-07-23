@@ -11,7 +11,7 @@
 | 欄位 | 值 |
 |------|-----|
 | 當前 Milestone | **M4 HUD 與控制** |
-| 下一張待辦 | **M4-T2** |
+| 下一張待辦 | **M4-T3** |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
@@ -381,7 +381,7 @@ GDD §6.3 HUD. Top bar: day/time-of-day + camp food. Stop when DoD is met.
 
 ## M4-T2 — 控制列（暫停 / 速度 / 重置 / Seed）
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-24）  
 - **依賴**：M4-T1  
 - **用量**：~10%  
 - **目標**：玩家可控制模擬節奏與重開。  
@@ -389,9 +389,9 @@ GDD §6.3 HUD. Top bar: day/time-of-day + camp food. Stop when DoD is met.
 - **非範圍**：replay 匯出、hover
 
 **DoD**：
-- [ ] 切速度明顯改變推進快慢
-- [ ] Reset+同 seed 可重現開局
-- [ ] Desktop 手動驗
+- [x] 切速度明顯改變推進快慢
+- [x] Reset+同 seed 可重現開局
+- [x] Desktop 手動驗
 
 **Grok Prompt**：
 ```
@@ -612,3 +612,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-24 | M3-T3 完成：UiFrame/autoplay/日夜 tint；預設 5×；M3 結束；下一張 M4-T1 |
 | 2026-07-24 | M4-T1 完成：HudView 年/日/晝夜 + 糧食大數字；下一張 M4-T2 |
 | 2026-07-24 | UI：取消日夜全畫面/棋盤 tint，固定淺色；M5-T1 2D 取消；光線留 3D |
+| 2026-07-24 | M4-T2 完成：ControlsView + Seed 輸入；下一張 M4-T3 |

@@ -81,12 +81,19 @@ class SimulationController(
         }
     }
 
+    /**
+     * Rebuilds the world with [seed], pauses playback, and publishes a fresh snapshot.
+     * Same seed always yields the same initial world (seeded RNG).
+     */
     fun reset(seed: Long = _seed.value) {
         pause()
         _seed.value = seed
         engine = SimulationEngine.create(seed)
         publish()
     }
+
+    /** Delay between sim-hours at the current speed (for tests / diagnostics). */
+    fun delayMsForCurrentSpeed(): Long = delayForSpeed(_speed.value)
 
     fun stepOnce() {
         if (engine.isGameOver) {

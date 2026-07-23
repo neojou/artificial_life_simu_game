@@ -2,14 +2,11 @@ package com.neojou.alsimugame.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,7 +16,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,7 +46,7 @@ fun rememberSimulationController(
 }
 
 /**
- * Simulation screen: top [HudView], board, controls.
+ * Simulation screen: top [HudView], board, [ControlsView].
  */
 @Composable
 fun SimScreen(
@@ -62,7 +58,6 @@ fun SimScreen(
     val speed by controller.speed.collectAsState()
     val seed by controller.seed.collectAsState()
 
-    // Fixed light background for comfort; day/night is shown only in the HUD (not full-screen tint).
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -73,10 +68,8 @@ fun SimScreen(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // M4-T1: persistent top HUD (year/day/phase + camp food)
             HudView(snapshot = snapshot)
 
-            // Secondary debug line (seed / play / agents) — not the main HUD
             SecondaryStatusLine(
                 snapshot = snapshot,
                 seed = seed,
@@ -96,16 +89,17 @@ fun SimScreen(
 
             HorizontalDivider()
 
-            ControlRow(
+            ControlsView(
                 playing = playing,
                 speed = speed,
                 speedOptions = controller.speedOptions,
+                currentSeed = seed,
                 gameOver = snapshot.isGameOver,
                 onPlay = controller::play,
                 onPause = controller::pause,
                 onStep = controller::stepOnce,
                 onSpeed = controller::setSpeed,
-                onReset = { controller.reset(seed) },
+                onReset = { newSeed -> controller.reset(newSeed) },
             )
         }
     }
@@ -149,51 +143,6 @@ private fun SecondaryStatusLine(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-        }
-    }
-}
-
-@Composable
-private fun ControlRow(
-    playing: Boolean,
-    speed: Int,
-    speedOptions: List<Int>,
-    gameOver: Boolean,
-    onPlay: () -> Unit,
-    onPause: () -> Unit,
-    onStep: () -> Unit,
-    onSpeed: (Int) -> Unit,
-    onReset: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (playing) {
-                Button(onClick = onPause) { Text("暫停") }
-            } else {
-                Button(onClick = onPlay, enabled = !gameOver) { Text("播放") }
-            }
-            OutlinedButton(onClick = onStep, enabled = !gameOver) { Text("單步") }
-            OutlinedButton(onClick = onReset) { Text("重置") }
-        }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("速度", style = MaterialTheme.typography.bodyMedium)
-            speedOptions.forEach { option ->
-                if (option == speed) {
-                    Button(onClick = { onSpeed(option) }) { Text("${option}×") }
-                } else {
-                    OutlinedButton(onClick = { onSpeed(option) }) { Text("${option}×") }
-                }
-            }
         }
     }
 }
