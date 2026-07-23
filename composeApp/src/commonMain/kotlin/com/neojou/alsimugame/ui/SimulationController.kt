@@ -14,31 +14,41 @@ import kotlinx.coroutines.launch
 /**
  * Bridges [SimulationEngine] to Compose UI (Architecture §7).
  *
- * - Exposes immutable [snapshot] via [StateFlow]
- * - Drives [SimulationEngine.stepHour] on a coroutine loop when playing
+ * - Exposes immutable [snapshot] via [StateFlow] (new instance every step)
+ * - [play] runs a coroutine loop: stepHour → publish → delay(speed)
  * - Speed multipliers: 1×, 2×, 5×, 10×
  *
  * UI layers must only read [snapshot]; they must not mutate engine state directly.
- *
- * @param initialSeed RNG seed for the first world.
- * @param scope Coroutine scope owned by the UI (e.g. [androidx.compose.runtime.rememberCoroutineScope]).
- * @param baseDelayMs Delay between hours at 1× speed.
  */
 class SimulationController(
     initialSeed: Long = DEFAULT_SEED,
     private val scope: CoroutineScope,
     private val baseDelayMs: Long = DEFAULT_BASE_DELAY_MS,
+    initialSpeed: Int = DEFAULT_SPEED,
 ) {
     private var engine: SimulationEngine = SimulationEngine.create(initialSeed)
 
-    private val _snapshot = MutableStateFlow(engine.snapshot())
-    val snapshot: StateFlow<SimSnapshot> = _snapshot.asStateFlow()
+    /**
+     * Monotonic counter so every [publish] yields a distinct [UiFrame]
+     * even if two snapshots were somehow equal (defensive for Compose).
+     */
+    private var frameId: Long = 0L
+
+    private val _frame = MutableStateFlow(UiFrame(frameId, engine.snapshot()))
+    val frame: StateFlow<UiFrame> = _frame.asStateFlow()
+
+    /** Convenience: latest world snapshot (same as [frame].value.snapshot). */
+    val snapshot: StateFlow<SimSnapshot>
+        get() = _snapshotMirror
+
+    private val _snapshotMirror = MutableStateFlow(engine.snapshot())
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
-    private val _speed = MutableStateFlow(1)
-    /** Current speed multiplier (1, 2, 5, or 10). */
+    private val _speed = MutableStateFlow(
+        if (initialSpeed in SPEED_OPTIONS) initialSpeed else DEFAULT_SPEED,
+    )
     val speed: StateFlow<Int> = _speed.asStateFlow()
 
     private val _seed = MutableStateFlow(initialSeed)
@@ -46,7 +56,6 @@ class SimulationController(
 
     private var loopJob: Job? = null
 
-    /** Allowed speed multipliers (GDD control strip). */
     val speedOptions: List<Int> get() = SPEED_OPTIONS
 
     fun play() {
@@ -62,22 +71,16 @@ class SimulationController(
         loopJob = null
     }
 
-    /**
-     * Sets simulation speed. Only [SPEED_OPTIONS] values are accepted; others are ignored.
-     */
     fun setSpeed(mult: Int) {
         if (mult !in SPEED_OPTIONS) return
+        if (_speed.value == mult) return
         _speed.value = mult
-        // Restart loop so the new delay applies immediately while playing.
         if (_isPlaying.value) {
             loopJob?.cancel()
             startLoop()
         }
     }
 
-    /**
-     * Rebuilds the world with [seed], pauses playback, and publishes a fresh snapshot.
-     */
     fun reset(seed: Long = _seed.value) {
         pause()
         _seed.value = seed
@@ -85,7 +88,6 @@ class SimulationController(
         publish()
     }
 
-    /** Advances exactly one hour while paused or playing (debug / stepping). */
     fun stepOnce() {
         if (engine.isGameOver) {
             pause()
@@ -99,7 +101,6 @@ class SimulationController(
         }
     }
 
-    /** Cancels the play loop; call from Compose [androidx.compose.runtime.DisposableEffect]. */
     fun dispose() {
         pause()
     }
@@ -109,22 +110,26 @@ class SimulationController(
         loopJob = scope.launch {
             while (isActive && _isPlaying.value) {
                 if (engine.isGameOver) {
-                    pause()
+                    _isPlaying.value = false
                     break
                 }
                 engine.stepHour()
                 publish()
                 if (engine.isGameOver) {
-                    pause()
+                    _isPlaying.value = false
                     break
                 }
                 delay(delayForSpeed(_speed.value))
             }
+            loopJob = null
         }
     }
 
     private fun publish() {
-        _snapshot.value = engine.snapshot()
+        frameId += 1
+        val snap = engine.snapshot()
+        _snapshotMirror.value = snap
+        _frame.value = UiFrame(frameId, snap)
     }
 
     private fun delayForSpeed(mult: Int): Long {
@@ -134,8 +139,19 @@ class SimulationController(
 
     companion object {
         const val DEFAULT_SEED: Long = 0L
-        const val DEFAULT_BASE_DELAY_MS: Long = 400L
+        /** Wall-clock ms per sim-hour at 1× — fast enough to see motion in ~30s. */
+        const val DEFAULT_BASE_DELAY_MS: Long = 280L
+        const val DEFAULT_SPEED: Int = 5
         const val MIN_DELAY_MS: Long = 16L
         val SPEED_OPTIONS: List<Int> = listOf(1, 2, 5, 10)
     }
 }
+
+/**
+ * UI frame wrapper: [id] guarantees StateFlow emissions and Compose keys
+ * update every simulation step.
+ */
+data class UiFrame(
+    val id: Long,
+    val snapshot: SimSnapshot,
+)

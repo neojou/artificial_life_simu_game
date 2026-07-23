@@ -10,8 +10,8 @@
 
 | 欄位 | 值 |
 |------|-----|
-| 當前 Milestone | **M3 最小可視原型** |
-| 下一張待辦 | **M3-T3** |
+| 當前 Milestone | **M4 HUD 與控制** |
+| 下一張待辦 | **M4-T1** |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
@@ -20,7 +20,7 @@
 - [x] **M0** 專案憲章（文件）
 - [x] **M1** 模擬核心
 - [x] **M2** 村民 AI
-- [ ] **M3** 最小可視原型
+- [x] **M3** 最小可視原型
 - [ ] **M4** HUD 與控制
 - [ ] **M5** 視覺 polish
 - [ ] **M6** Seed / 統計 / Wasm 收斂
@@ -333,7 +333,7 @@ No polish FX. Stop when DoD is met.
 
 ## M3-T3 — 自動推進可視驗證
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-24）  
 - **依賴**：M3-T2  
 - **用量**：~10%  
 - **目標**：Play 時可見時間流逝、agent 移動、土地變化。  
@@ -344,8 +344,8 @@ No polish FX. Stop when DoD is met.
 - **非範圍**：完整控制列（M4）、美術資源
 
 **DoD**：
-- [ ] Desktop：按 Play 後 30 秒內可觀察到 agent 位移或土地/pending 變化（多數 seed）
-- [ ] 無連續 crash
+- [x] Desktop：按 Play 後 30 秒內可觀察到 agent 位移或土地/pending 變化（多數 seed）
+- [x] 無連續 crash
 
 **Grok Prompt**：
 ```
@@ -623,3 +623,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-23 | M3-T2 完成：BoardView 3×3 色塊 + M/F 標記；下一張 M3-T3 |
 | 2026-07-23 | 設計更新：地圖 3×3→5×5（營 2,2）；pending_harvest 上限 3 |
 | 2026-07-23 | Wasm 中文：內嵌 Noto Sans TC + AppTheme（Skiko 無系統 CJK 回退） |
+| 2026-07-24 | M3-T3 完成：UiFrame/autoplay/日夜 tint；預設 5×；M3 結束；下一張 M4-T1 |

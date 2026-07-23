@@ -52,21 +52,22 @@ object BoardColors {
 /**
  * Fixed top-down board ([SimConfig.GRID_SIZE]²) driven only by [SimSnapshot].
  *
- * Sizing: the grid is a square that fits inside the **smaller** of the parent's
- * max width and max height (via [BoxWithConstraints]), so all 9 cells stay visible
- * when the window is short or wide. Does not force height = full width.
+ * Sizing: square fits min(maxWidth, maxHeight). [frameId] forces cell refresh each step.
  */
 @Composable
 fun BoardView(
     snapshot: SimSnapshot,
     modifier: Modifier = Modifier,
     gridSize: Int = SimConfig.GRID_SIZE,
+    frameId: Long = 0L,
 ) {
     val appFont = rememberAppFontFamily()
-    val tileByPos = remember(snapshot.tiles) {
+    val isNight = snapshot.isNight
+    // Key off frameId so maps rebuild every sim step (position / land / pending).
+    val tileByPos = remember(frameId, snapshot.tiles) {
         snapshot.tiles.associateBy { it.x to it.y }
     }
-    val agentsByPos = remember(snapshot.agents) {
+    val agentsByPos = remember(frameId, snapshot.agents) {
         snapshot.agents.groupBy { it.x to it.y }
     }
 
@@ -76,12 +77,11 @@ fun BoardView(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "地圖 ${gridSize}×${gridSize}",
+            text = "地圖 ${gridSize}×${gridSize}" + if (isNight) " · 夜" else " · 晝",
             style = MaterialTheme.typography.titleSmall,
             fontFamily = appFont,
         )
 
-        // Grid area: take remaining height, center a square that fits both axes.
         BoxWithConstraints(
             modifier = Modifier
                 .weight(1f)
@@ -89,7 +89,6 @@ fun BoardView(
             contentAlignment = Alignment.Center,
         ) {
             val gap = 4.dp
-            // Leave a little inset so borders aren't clipped.
             val side = min(maxWidth, maxHeight) * 0.98f
             Column(
                 modifier = Modifier.size(side),
@@ -112,6 +111,7 @@ fun BoardView(
                                 isCamp = isCamp,
                                 tile = tile,
                                 agents = agents,
+                                isNight = isNight,
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight(),
@@ -122,7 +122,7 @@ fun BoardView(
             }
         }
 
-        BoardLegend()
+        BoardLegend(isNight = isNight)
     }
 }
 
@@ -133,16 +133,18 @@ private fun BoardCell(
     isCamp: Boolean,
     tile: TileSnapshot?,
     agents: List<AgentSnapshot>,
+    isNight: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val appFont = rememberAppFontFamily()
-    val bg = when {
+    val baseBg = when {
         isCamp -> BoardColors.Camp
         tile == null -> BoardColors.Empty
         else -> colorForTileState(tile.state)
     }
+    val bg = if (isNight) nightModulate(baseBg) else baseBg
     val labelColor =
-        if (isCamp || tile?.state == TileState.FARM || tile?.state == TileState.EMPTY) {
+        if (isCamp || tile?.state == TileState.FARM || tile?.state == TileState.EMPTY || isNight) {
             BoardColors.LabelOnDark
         } else {
             BoardColors.LabelOnLight
@@ -237,7 +239,7 @@ private fun AgentMarker(
 }
 
 @Composable
-private fun BoardLegend() {
+private fun BoardLegend(isNight: Boolean) {
     val appFont = rememberAppFontFamily()
     Row(
         modifier = Modifier
@@ -245,10 +247,10 @@ private fun BoardLegend() {
             .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
     ) {
-        LegendSwatch(BoardColors.Camp, "寨營", appFont)
-        LegendSwatch(BoardColors.Grass, "草地", appFont)
-        LegendSwatch(BoardColors.Farm, "田地", appFont)
-        LegendSwatch(BoardColors.Empty, "空地", appFont)
+        LegendSwatch(BoardColors.Camp, "寨營", appFont, isNight)
+        LegendSwatch(BoardColors.Grass, "草地", appFont, isNight)
+        LegendSwatch(BoardColors.Farm, "田地", appFont, isNight)
+        LegendSwatch(BoardColors.Empty, "空地", appFont, isNight)
         Text(
             "M/F=村民",
             style = MaterialTheme.typography.labelSmall,
@@ -262,7 +264,9 @@ private fun LegendSwatch(
     color: Color,
     label: String,
     fontFamily: androidx.compose.ui.text.font.FontFamily,
+    isNight: Boolean,
 ) {
+    val swatch = if (isNight) nightModulate(color) else color
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -270,7 +274,7 @@ private fun LegendSwatch(
         Box(
             modifier = Modifier
                 .size(12.dp)
-                .background(color, RoundedCornerShape(2.dp))
+                .background(swatch, RoundedCornerShape(2.dp))
                 .border(0.5.dp, BoardColors.CellBorder, RoundedCornerShape(2.dp)),
         )
         Text(
@@ -286,6 +290,14 @@ private fun colorForTileState(state: TileState): Color = when (state) {
     TileState.FARM -> BoardColors.Farm
     TileState.EMPTY -> BoardColors.Empty
 }
+
+/** Darken / cool palette for night hours (simple visual, M3-T3). */
+private fun nightModulate(color: Color): Color = Color(
+    red = color.red * 0.45f + 0.05f,
+    green = color.green * 0.48f + 0.06f,
+    blue = color.blue * 0.62f + 0.12f,
+    alpha = color.alpha,
+)
 
 private fun shortState(state: TileState): String = when (state) {
     TileState.GRASS -> "草"

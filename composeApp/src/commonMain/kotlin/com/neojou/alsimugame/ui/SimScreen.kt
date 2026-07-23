@@ -14,12 +14,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.neojou.alsimugame.sim.model.SimSnapshot
@@ -30,6 +33,7 @@ import com.neojou.alsimugame.sim.model.SimSnapshot
 @Composable
 fun rememberSimulationController(
     initialSeed: Long = SimulationController.DEFAULT_SEED,
+    autoPlay: Boolean = true,
 ): SimulationController {
     val scope = rememberCoroutineScope()
     val controller = remember(initialSeed) {
@@ -38,31 +42,37 @@ fun rememberSimulationController(
     DisposableEffect(controller) {
         onDispose { controller.dispose() }
     }
+    // M3-T3: start living simulation automatically; user can still pause.
+    LaunchedEffect(controller, autoPlay) {
+        if (autoPlay) {
+            controller.play()
+        }
+    }
     return controller
 }
 
 /**
- * Simulation screen layout (fixed zones, no overlap):
- *
- * ```
- * ┌ header / compact status (intrinsic) ─┐
- * │ board (weight=1, fits available)     │
- * │ controls (intrinsic, always visible) │
- * └──────────────────────────────────────┘
- * ```
+ * Simulation screen: status, board, controls.
+ * Play loop updates [UiFrame] so board/agents animate every sim hour.
  */
 @Composable
 fun SimScreen(
     controller: SimulationController = rememberSimulationController(),
 ) {
-    val snapshot by controller.snapshot.collectAsState()
+    val frame by controller.frame.collectAsState()
+    val snapshot = frame.snapshot
     val playing by controller.isPlaying.collectAsState()
     val speed by controller.speed.collectAsState()
     val seed by controller.seed.collectAsState()
 
+    val night = snapshot.isNight
+    val surfaceColor = if (night) NightPalette.Surface else MaterialTheme.colorScheme.background
+    val onSurface = if (night) NightPalette.OnSurface else MaterialTheme.colorScheme.onBackground
+
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
+        color = surfaceColor,
+        contentColor = onSurface,
     ) {
         Column(
             modifier = Modifier
@@ -70,7 +80,6 @@ fun SimScreen(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // --- Top: title + compact status (does not grow) ---
             Text(
                 text = "小小寨營 / Tiny Camp",
                 style = MaterialTheme.typography.headlineSmall,
@@ -82,20 +91,20 @@ fun SimScreen(
                 seed = seed,
                 speed = speed,
                 playing = playing,
+                frameId = frame.id,
             )
-            HorizontalDivider()
+            HorizontalDivider(color = onSurface.copy(alpha = 0.2f))
 
-            // --- Middle: board fills leftover space only ---
             BoardView(
                 snapshot = snapshot,
+                frameId = frame.id,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
             )
 
-            HorizontalDivider()
+            HorizontalDivider(color = onSurface.copy(alpha = 0.2f))
 
-            // --- Bottom: controls always fully visible ---
             ControlRow(
                 playing = playing,
                 speed = speed,
@@ -111,21 +120,24 @@ fun SimScreen(
     }
 }
 
-/**
- * Compact multi-line status that stays above the board (no agent wall-of-text).
- * Detailed agent lines are shortened to one row each.
- */
+/** Simple day/night surface colors (M3-T3; not full art). */
+private object NightPalette {
+    val Surface = Color(0xFF151B28)
+    val OnSurface = Color(0xFFE6EAF2)
+}
+
 @Composable
 private fun CompactStatusReadout(
     snapshot: SimSnapshot,
     seed: Long,
     speed: Int,
     playing: Boolean,
+    frameId: Long,
 ) {
     val phase = if (snapshot.isDay) "白天" else "夜晚"
     val status = when {
         snapshot.isGameOver -> "結束"
-        playing -> "播放"
+        playing -> "播放中"
         else -> "暫停"
     }
     val land = snapshot.landStateCounts()
@@ -140,14 +152,15 @@ private fun CompactStatusReadout(
         Text(
             text = "狀態 $status · Seed $seed · 第 ${snapshot.day} 日 時辰 ${snapshot.hour}（$phase）· ${speed}×",
             style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (playing) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = "糧食 ${snapshot.campFood} · 村民 ${snapshot.livingAgentCount}/${snapshot.agents.size} · " +
-                "土地 草$grass / 田$farm / 空$empty · 待收 ${snapshot.totalPendingHarvest()}",
+                "土地 草$grass / 田$farm / 空$empty · 待收 ${snapshot.totalPendingHarvest()} · 幀 $frameId",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = LocalDimContentColor(),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
@@ -162,6 +175,10 @@ private fun CompactStatusReadout(
         }
     }
 }
+
+@Composable
+private fun LocalDimContentColor(): Color =
+    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
 
 @Composable
 private fun ControlRow(
