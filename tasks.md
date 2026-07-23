@@ -647,3 +647,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-24 | M4-T3 完成：StatsRecorder + StatsPanel + 棋盤 hover；M4 結束；下一張 M5-T2 |
 | 2026-07-24 | Vis-A：正俯視 tile+pawn 資產與 BoardView 重寫；GDD 視角改 RimWorld 式 2D |
 | 2026-07-24 | Vis-B：seamless 棋盤 + AgentVisual 小時補間移動；sim 仍 stepHour |
+| 2026-07-24 | Vis-B hotfix：pawn idle 粉紅底去背 + idle 性別錯檔對調；work/carry 姿勢對齊 |

@@ -11,11 +11,20 @@ Vis-B: tiles are drawn **seamless** (gap=0); pawn placement uses continuous
 | `tile_farm_ripe.png` | FARM land, pending > 0 |
 | `tile_empty.png` | EMPTY / fallow |
 | `tile_camp.png` | Center camp cell |
-| `pawn_male_idle.png` | Male default |
-| `pawn_female_idle.png` | Female default |
-| `pawn_*_work.png` | TILLING / HARVESTING |
-| `pawn_*_carry.png` | carriedFood > 0 |
+| `pawn_male_idle.png` | Male default (blue tunic) |
+| `pawn_female_idle.png` | Female default (pink dress) |
+| `pawn_*_work.png` | TILLING / HARVESTING (hoe pose) |
+| `pawn_*_carry.png` | carriedFood > 0 (sack pose) |
 
 Generated with Imagine; style: soft painted cozy, pastel greens/earths.
-Pawns keyed from magenta background to transparent PNG (96×96).
+Pawns: transparent PNG 96×96 (no solid key color in final files).
 Tiles resized to 128×128.
+
+## Hotfix (Vis-B visual bugs)
+
+| Bug | Cause | Fix |
+|-----|--------|-----|
+| Pink square behind character | `pawn_male_idle` shipped with solid hot-pink bg (not keyed) | Edge flood-fill chroma key → alpha |
+| Gender flips on till/harvest | Idle files had **swapped gender art** vs `*_work` | Swap idle contents so `male_*`/`female_*` match; align female work/carry poses |
+
+`WorldAssets.pawnFor` gender logic was already correct; only assets were wrong.
