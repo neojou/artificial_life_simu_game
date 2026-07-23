@@ -11,7 +11,7 @@
 | 欄位 | 值 |
 |------|-----|
 | 當前 Milestone | **M3 最小可視原型** |
-| 下一張待辦 | **M3-T2** |
+| 下一張待辦 | **M3-T3** |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
@@ -307,7 +307,7 @@ Minimal text readout is enough. Stop when DoD is met.
 
 ## M3-T2 — 3×3 棋盤 UI（色塊占位）
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-23）  
 - **依賴**：M3-T1  
 - **用量**：~10%  
 - **目標**：固定視角畫出 9 格與 agent 位置。  
@@ -318,8 +318,8 @@ Minimal text readout is enough. Stop when DoD is met.
 - **非範圍**：日夜 tint 大作、粒子、控制列美化
 
 **DoD**：
-- [ ] Desktop run 可見 3×3 與兩 agent
-- [ ] 土地狀態顏色可區分
+- [x] Desktop run 可見 3×3 與兩 agent
+- [x] 土地狀態顏色可區分
 
 **Grok Prompt**：
 ```
@@ -620,3 +620,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-23 | M2 整包完成（T1 Pathfinder/move、T2 AgentBrain、T3 壽命/死亡）；下一張 M3-T1 |
 | 2026-07-23 | M3-T1 完成：SimulationController + 文字 readout；下一張 M3-T2 |
 | 2026-07-23 | 參數：村民壽命 1 年→5 年（LIFESPAN_DAYS 12→60）；土地 12 日不變 |
+| 2026-07-23 | M3-T2 完成：BoardView 3×3 色塊 + M/F 標記；下一張 M3-T3 |

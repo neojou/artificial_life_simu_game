@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.neojou.alsimugame.sim.model.SimSnapshot
 
@@ -40,8 +42,14 @@ fun rememberSimulationController(
 }
 
 /**
- * Minimal simulation screen for M3-T1: text readout + play/pause/speed/reset.
- * Full board UI arrives in M3-T2.
+ * Simulation screen layout (fixed zones, no overlap):
+ *
+ * ```
+ * ┌ header / compact status (intrinsic) ─┐
+ * │ board (weight=1, fits available)     │
+ * │ controls (intrinsic, always visible) │
+ * └──────────────────────────────────────┘
+ * ```
  */
 @Composable
 fun SimScreen(
@@ -59,14 +67,35 @@ fun SimScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // --- Top: title + compact status (does not grow) ---
             Text(
                 text = "小小寨營 / Tiny Camp",
                 style = MaterialTheme.typography.headlineSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            SnapshotReadout(snapshot = snapshot, seed = seed, speed = speed, playing = playing)
+            CompactStatusReadout(
+                snapshot = snapshot,
+                seed = seed,
+                speed = speed,
+                playing = playing,
+            )
+            HorizontalDivider()
+
+            // --- Middle: board fills leftover space only ---
+            BoardView(
+                snapshot = snapshot,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+
+            HorizontalDivider()
+
+            // --- Bottom: controls always fully visible ---
             ControlRow(
                 playing = playing,
                 speed = speed,
@@ -78,17 +107,16 @@ fun SimScreen(
                 onSpeed = controller::setSpeed,
                 onReset = { controller.reset(seed) },
             )
-            Text(
-                text = "M3-T1: text readout only — board UI in M3-T2",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
 
+/**
+ * Compact multi-line status that stays above the board (no agent wall-of-text).
+ * Detailed agent lines are shortened to one row each.
+ */
 @Composable
-private fun SnapshotReadout(
+private fun CompactStatusReadout(
     snapshot: SimSnapshot,
     seed: Long,
     speed: Int,
@@ -96,23 +124,40 @@ private fun SnapshotReadout(
 ) {
     val phase = if (snapshot.isDay) "白天" else "夜晚"
     val status = when {
-        snapshot.isGameOver -> "結束 (Game Over)"
-        playing -> "播放中"
+        snapshot.isGameOver -> "結束"
+        playing -> "播放"
         else -> "暫停"
     }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("狀態: $status")
-        Text("Seed: $seed")
-        Text("時間: 第 ${snapshot.day} 日 / 時辰 ${snapshot.hour} ($phase)")
-        Text("寨營糧食: ${snapshot.campFood}")
-        Text("村民: ${snapshot.livingAgentCount} 存活 / ${snapshot.agents.size} 總計")
-        Text("速度: ${speed}×")
+    val land = snapshot.landStateCounts()
+    val grass = land[com.neojou.alsimugame.sim.model.TileState.GRASS] ?: 0
+    val farm = land[com.neojou.alsimugame.sim.model.TileState.FARM] ?: 0
+    val empty = land[com.neojou.alsimugame.sim.model.TileState.EMPTY] ?: 0
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = "狀態 $status · Seed $seed · 第 ${snapshot.day} 日 時辰 ${snapshot.hour}（$phase）· ${speed}×",
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = "糧食 ${snapshot.campFood} · 村民 ${snapshot.livingAgentCount}/${snapshot.agents.size} · " +
+                "土地 草$grass / 田$farm / 空$empty · 待收 ${snapshot.totalPendingHarvest()}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
         snapshot.agents.forEach { agent ->
             Text(
-                "  · ${agent.id} [${agent.gender}] " +
-                    "pos=(${agent.x},${agent.y}) " +
-                    "sta=${agent.stamina} mode=${agent.mode} " +
-                    "carry=${agent.carriedFood}",
+                text = "· ${agent.id} ${agent.gender} @(${agent.x},${agent.y}) " +
+                    "sta=${agent.stamina} ${agent.mode} carry=${agent.carriedFood}",
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -130,7 +175,10 @@ private fun ControlRow(
     onSpeed: (Int) -> Unit,
     onReset: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -148,7 +196,7 @@ private fun ControlRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("速度")
+            Text("速度", style = MaterialTheme.typography.bodyMedium)
             speedOptions.forEach { option ->
                 if (option == speed) {
                     Button(onClick = { onSpeed(option) }) { Text("${option}×") }
