@@ -62,7 +62,6 @@ fun BoardView(
     frameId: Long = 0L,
 ) {
     val appFont = rememberAppFontFamily()
-    val isNight = snapshot.isNight
     // Key off frameId so maps rebuild every sim step (position / land / pending).
     val tileByPos = remember(frameId, snapshot.tiles) {
         snapshot.tiles.associateBy { it.x to it.y }
@@ -77,7 +76,7 @@ fun BoardView(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "地圖 ${gridSize}×${gridSize}" + if (isNight) " · 夜" else " · 晝",
+            text = "地圖 ${gridSize}×${gridSize}",
             style = MaterialTheme.typography.titleSmall,
             fontFamily = appFont,
         )
@@ -111,7 +110,6 @@ fun BoardView(
                                 isCamp = isCamp,
                                 tile = tile,
                                 agents = agents,
-                                isNight = isNight,
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight(),
@@ -122,7 +120,7 @@ fun BoardView(
             }
         }
 
-        BoardLegend(isNight = isNight)
+        BoardLegend()
     }
 }
 
@@ -133,18 +131,16 @@ private fun BoardCell(
     isCamp: Boolean,
     tile: TileSnapshot?,
     agents: List<AgentSnapshot>,
-    isNight: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val appFont = rememberAppFontFamily()
-    val baseBg = when {
+    val bg = when {
         isCamp -> BoardColors.Camp
         tile == null -> BoardColors.Empty
         else -> colorForTileState(tile.state)
     }
-    val bg = if (isNight) nightModulate(baseBg) else baseBg
     val labelColor =
-        if (isCamp || tile?.state == TileState.FARM || tile?.state == TileState.EMPTY || isNight) {
+        if (isCamp || tile?.state == TileState.FARM || tile?.state == TileState.EMPTY) {
             BoardColors.LabelOnDark
         } else {
             BoardColors.LabelOnLight
@@ -239,7 +235,7 @@ private fun AgentMarker(
 }
 
 @Composable
-private fun BoardLegend(isNight: Boolean) {
+private fun BoardLegend() {
     val appFont = rememberAppFontFamily()
     Row(
         modifier = Modifier
@@ -247,10 +243,10 @@ private fun BoardLegend(isNight: Boolean) {
             .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
     ) {
-        LegendSwatch(BoardColors.Camp, "寨營", appFont, isNight)
-        LegendSwatch(BoardColors.Grass, "草地", appFont, isNight)
-        LegendSwatch(BoardColors.Farm, "田地", appFont, isNight)
-        LegendSwatch(BoardColors.Empty, "空地", appFont, isNight)
+        LegendSwatch(BoardColors.Camp, "寨營", appFont)
+        LegendSwatch(BoardColors.Grass, "草地", appFont)
+        LegendSwatch(BoardColors.Farm, "田地", appFont)
+        LegendSwatch(BoardColors.Empty, "空地", appFont)
         Text(
             "M/F=村民",
             style = MaterialTheme.typography.labelSmall,
@@ -264,9 +260,7 @@ private fun LegendSwatch(
     color: Color,
     label: String,
     fontFamily: androidx.compose.ui.text.font.FontFamily,
-    isNight: Boolean,
 ) {
-    val swatch = if (isNight) nightModulate(color) else color
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -274,7 +268,7 @@ private fun LegendSwatch(
         Box(
             modifier = Modifier
                 .size(12.dp)
-                .background(swatch, RoundedCornerShape(2.dp))
+                .background(color, RoundedCornerShape(2.dp))
                 .border(0.5.dp, BoardColors.CellBorder, RoundedCornerShape(2.dp)),
         )
         Text(
@@ -290,14 +284,6 @@ private fun colorForTileState(state: TileState): Color = when (state) {
     TileState.FARM -> BoardColors.Farm
     TileState.EMPTY -> BoardColors.Empty
 }
-
-/** Darken / cool palette for night hours (simple visual, M3-T3). */
-private fun nightModulate(color: Color): Color = Color(
-    red = color.red * 0.45f + 0.05f,
-    green = color.green * 0.48f + 0.06f,
-    blue = color.blue * 0.62f + 0.12f,
-    alpha = color.alpha,
-)
 
 private fun shortState(state: TileState): String = when (state) {
     TileState.GRASS -> "草"

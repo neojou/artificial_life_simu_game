@@ -339,7 +339,7 @@ No polish FX. Stop when DoD is met.
 - **目標**：Play 時可見時間流逝、agent 移動、土地變化。  
 - **範圍**：
   - 接好預設 autoplay（或明顯 Play 鈕）
-  - 日夜可用背景灰階差表示（簡單）
+  - 日夜以 HUD 顯示（2D **不做**全畫面背景切換；見 2026-07-24 設計更新）
   - 修 snapshot 未更新、位置不同步等整合 bug
 - **非範圍**：完整控制列（M4）、美術資源
 
@@ -430,32 +430,18 @@ Minimal StatsRecorder fields if missing. Stop when DoD is met.
 
 # M5 — 視覺 polish
 
-## M5-T1 — 日夜色調
+## M5-T1 — 日夜色調（2D 已取消）
 
-- [ ] **狀態**：todo  
-- **依賴**：M4-T3  
-- **用量**：~10%  
-- **目標**：白天暖亮、夜晚冷暗、寨營夜晚略亮。  
-- **範圍**：theme/tint overlay；勿大改邏輯  
-- **非範圍**：完整 sprite sheet
-
-**DoD**：
-- [ ] 日夜切換肉眼可辨
-- [ ] 模擬邏輯測試仍綠
-
-**Grok Prompt**：
-```
-Implement tasks.md M5-T1 only.
-Day/night visual tint only. No simulation rule changes.
-Stop when DoD is met.
-```
+- [x] **狀態**：cancelled（2026-07-24）— 2D 固定淺色背景，晝夜僅 HUD 顯示；全畫面光線留待未來 3D  
+- **原目標**：白天暖亮、夜晚冷暗（已改設計，避免觀看不適）  
+- **備註**：模擬層 `isDay`/`isNight` 仍驅動 AI；視覺不跟隨壓暗。
 
 ---
 
 ## M5-T2 — Agent 狀態表現
 
 - [ ] **狀態**：todo  
-- **依賴**：M5-T1  
+- **依賴**：M4-T3（原依賴 M5-T1 已取消）  
 - **用量**：~10%  
 - **目標**：依 mode 顯示不同圖示/emoji/簡單動畫狀態。  
 - **範圍**：REST/EXPLORE/WORK/RETURN/SLEEP/DEAD 可辨；男女外觀差  
@@ -625,3 +611,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-23 | Wasm 中文：內嵌 Noto Sans TC + AppTheme（Skiko 無系統 CJK 回退） |
 | 2026-07-24 | M3-T3 完成：UiFrame/autoplay/日夜 tint；預設 5×；M3 結束；下一張 M4-T1 |
 | 2026-07-24 | M4-T1 完成：HudView 年/日/晝夜 + 糧食大數字；下一張 M4-T2 |
+| 2026-07-24 | UI：取消日夜全畫面/棋盤 tint，固定淺色；M5-T1 2D 取消；光線留 3D |

@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,14 +62,10 @@ fun SimScreen(
     val speed by controller.speed.collectAsState()
     val seed by controller.seed.collectAsState()
 
-    val night = snapshot.isNight
-    val surfaceColor = if (night) NightPalette.Surface else MaterialTheme.colorScheme.background
-    val onSurface = if (night) NightPalette.OnSurface else MaterialTheme.colorScheme.onBackground
-
+    // Fixed light background for comfort; day/night is shown only in the HUD (not full-screen tint).
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = surfaceColor,
-        contentColor = onSurface,
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column(
             modifier = Modifier
@@ -89,7 +84,7 @@ fun SimScreen(
                 playing = playing,
             )
 
-            HorizontalDivider(color = onSurface.copy(alpha = 0.2f))
+            HorizontalDivider()
 
             BoardView(
                 snapshot = snapshot,
@@ -99,7 +94,7 @@ fun SimScreen(
                     .fillMaxWidth(),
             )
 
-            HorizontalDivider(color = onSurface.copy(alpha = 0.2f))
+            HorizontalDivider()
 
             ControlRow(
                 playing = playing,
@@ -114,11 +109,6 @@ fun SimScreen(
             )
         }
     }
-}
-
-private object NightPalette {
-    val Surface = Color(0xFF151B28)
-    val OnSurface = Color(0xFFE6EAF2)
 }
 
 @Composable

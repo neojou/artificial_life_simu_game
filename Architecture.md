@@ -76,7 +76,7 @@ composeApp/src/
       HudView.kt
       ControlsView.kt
       StatsPanel.kt
-      theme/                        # 日夜 tint 等
+      theme/                        # AppTheme 字型等；2D 固定淺色（無日夜全畫面 tint）
     tools/
       MyLog.kt
       SystemSettings.kt
@@ -243,7 +243,7 @@ class SimulationController(
 - **UI 只讀 `SimSnapshot`**，禁止直接 mutate `Tile` / `Agent`。
 - 固定 2.5D / 俯視 5×5 全圖；**無相機平移縮放**（GDD §6.1）。
 
-M3 可用色塊 + 文字；M5 再換 sprite / tint。
+M3 可用色塊 + 文字；M5 再換 sprite。日夜僅 HUD 標示；全畫面光線留給 3D。
 
 ---
 
