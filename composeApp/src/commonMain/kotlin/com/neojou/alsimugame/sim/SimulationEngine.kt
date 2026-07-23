@@ -36,6 +36,9 @@ class SimulationEngine(
 
     val agents: MutableList<Agent> = agents.toMutableList()
 
+    /** Lifetime counters for the stats panel. */
+    val stats: StatsRecorder = StatsRecorder()
+
     /**
      * When false, [stepHour] only advances time/land (and lifespan aging),
      * without [AgentBrain] actions. Useful for pure land unit tests.
@@ -109,7 +112,8 @@ class SimulationEngine(
 
     private fun onNewDay() {
         LandSystem.ageAndTransition(grid)
-        LandSystem.applyDailyFarmYield(grid)
+        val yielded = LandSystem.applyDailyFarmYield(grid)
+        stats.recordYield(yielded)
 
         for (agent in agents) {
             if (!agent.isAlive) continue
@@ -122,10 +126,16 @@ class SimulationEngine(
         // Morning supply for living agents at camp (GDD §5.1 daily supply).
         for (agent in agents) {
             if (!agent.isAlive || !agent.isAtCamp) continue
-            campFood = Economy.depositCarriedFood(agent, campFood)
+            depositFromAgent(agent)
             campFood = Economy.supplyStaminaFromCamp(agent, campFood)
             agent.mode = AgentMode.RESTING
         }
+    }
+
+    private fun depositFromAgent(agent: Agent) {
+        val amount = agent.carriedFood
+        campFood = Economy.depositCarriedFood(agent, campFood)
+        stats.recordDeposit(amount)
     }
 
     private fun execute(agent: Agent, action: AgentAction) {
@@ -149,14 +159,16 @@ class SimulationEngine(
             }
             AgentAction.HarvestHere -> {
                 val tile = grid.tileAt(agent.pos) ?: return
-                if (Economy.tryHarvest(agent, tile) != null) {
+                val amount = Economy.tryHarvest(agent, tile)
+                if (amount != null) {
+                    stats.recordHarvest(amount)
                     agent.returnHome = true
                     agent.mode = AgentMode.RETURNING
                 }
             }
             AgentAction.SupplyAtCamp -> {
                 if (!agent.isAtCamp) return
-                campFood = Economy.depositCarriedFood(agent, campFood)
+                depositFromAgent(agent)
                 campFood = Economy.supplyStaminaFromCamp(agent, campFood)
                 agent.mode = AgentMode.RESTING
                 agent.returnHome = false
@@ -247,6 +259,9 @@ class SimulationEngine(
             tiles = tiles,
             agents = agentSnaps,
             isGameOver = isGameOver,
+            totalFoodProduced = stats.totalFoodProduced,
+            totalFoodHarvested = stats.totalFoodHarvested,
+            totalFoodDeposited = stats.totalFoodDeposited,
         )
     }
 

@@ -47,6 +47,12 @@ data class SimSnapshot(
     val tiles: List<TileSnapshot>,
     val agents: List<AgentSnapshot>,
     val isGameOver: Boolean,
+    /** Cumulative farm yield actually added to tiles (after pending cap). */
+    val totalFoodProduced: Int = 0,
+    /** Cumulative food harvested from tiles into agent carry. */
+    val totalFoodHarvested: Int = 0,
+    /** Cumulative food deposited into camp stock. */
+    val totalFoodDeposited: Int = 0,
 ) {
     /** Count of peripheral tiles in each land state (camp omitted). */
     fun landStateCounts(): Map<TileState, Int> =
@@ -58,4 +64,14 @@ data class SimSnapshot(
 
     val livingAgentCount: Int
         get() = agents.count { it.mode != AgentMode.DEAD }
+
+    val deadAgentCount: Int
+        get() = agents.count { it.mode == AgentMode.DEAD }
+
+    /** Average ageDays of living agents, or 0 if none. */
+    fun averageLivingAgeDays(): Double {
+        val living = agents.filter { it.mode != AgentMode.DEAD }
+        if (living.isEmpty()) return 0.0
+        return living.map { it.ageDays }.average()
+    }
 }

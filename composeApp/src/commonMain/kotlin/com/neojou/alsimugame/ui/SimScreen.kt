@@ -14,8 +14,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,7 +48,7 @@ fun rememberSimulationController(
 }
 
 /**
- * Simulation screen: top [HudView], board, [ControlsView].
+ * Simulation screen: HUD, stats, board (with hover), controls.
  */
 @Composable
 fun SimScreen(
@@ -57,6 +59,9 @@ fun SimScreen(
     val playing by controller.isPlaying.collectAsState()
     val speed by controller.speed.collectAsState()
     val seed by controller.seed.collectAsState()
+
+    var statsExpanded by remember { mutableStateOf(true) }
+    var hoverInfo by remember { mutableStateOf<BoardHoverInfo?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -77,11 +82,19 @@ fun SimScreen(
                 playing = playing,
             )
 
+            StatsPanel(
+                snapshot = snapshot,
+                expanded = statsExpanded,
+                onToggle = { statsExpanded = !statsExpanded },
+                hoverText = hoverInfo?.summary,
+            )
+
             HorizontalDivider()
 
             BoardView(
                 snapshot = snapshot,
                 frameId = frame.id,
+                onHover = { hoverInfo = it },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
@@ -99,7 +112,10 @@ fun SimScreen(
                 onPause = controller::pause,
                 onStep = controller::stepOnce,
                 onSpeed = controller::setSpeed,
-                onReset = { newSeed -> controller.reset(newSeed) },
+                onReset = { newSeed ->
+                    hoverInfo = null
+                    controller.reset(newSeed)
+                },
             )
         }
     }
@@ -117,32 +133,14 @@ private fun SecondaryStatusLine(
         playing -> "播放中"
         else -> "暫停"
     }
-    val land = snapshot.landStateCounts()
-    val grass = land[com.neojou.alsimugame.sim.model.TileState.GRASS] ?: 0
-    val farm = land[com.neojou.alsimugame.sim.model.TileState.FARM] ?: 0
-    val empty = land[com.neojou.alsimugame.sim.model.TileState.EMPTY] ?: 0
 
-    Column(
+    Text(
+        text = "$status · Seed $seed · ${speed}× · 村民 ${snapshot.livingAgentCount}/${snapshot.agents.size}",
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = if (playing) FontWeight.SemiBold else FontWeight.Normal,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Text(
-            text = "$status · Seed $seed · ${speed}× · 村民 ${snapshot.livingAgentCount}/${snapshot.agents.size} · " +
-                "草$grass / 田$farm / 空$empty",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = if (playing) FontWeight.SemiBold else FontWeight.Normal,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        snapshot.agents.forEach { agent ->
-            Text(
-                text = "· ${agent.id} ${agent.gender} @(${agent.x},${agent.y}) " +
-                    "sta=${agent.stamina} ${agent.mode} carry=${agent.carriedFood}",
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
+    )
 }

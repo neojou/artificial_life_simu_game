@@ -49,16 +49,22 @@ object LandSystem {
     /**
      * At the start of a new day, each FARM tile accumulates yield into [Tile.pendingHarvest],
      * capped at [SimConfig.MAX_PENDING_HARVEST].
+     *
+     * @return Total food units actually added across all farms (after cap).
      */
-    fun applyDailyFarmYield(grid: Grid) {
+    fun applyDailyFarmYield(grid: Grid): Int {
+        var produced = 0
         grid.forEachPeripheral { _, tile ->
             if (tile.state == TileState.FARM) {
+                val before = tile.pendingHarvest
                 tile.pendingHarvest = min(
                     tile.pendingHarvest + SimConfig.FARM_YIELD_PER_DAY,
                     SimConfig.MAX_PENDING_HARVEST,
                 )
+                produced += tile.pendingHarvest - before
             }
         }
+        return produced
     }
 
     /**

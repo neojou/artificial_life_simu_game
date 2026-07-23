@@ -21,27 +21,30 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import com.neojou.alsimugame.sim.model.AgentMode
-import com.neojou.alsimugame.ui.theme.rememberAppFontFamily
 import com.neojou.alsimugame.sim.model.AgentSnapshot
 import com.neojou.alsimugame.sim.model.Gender
 import com.neojou.alsimugame.sim.model.SimConfig
 import com.neojou.alsimugame.sim.model.SimSnapshot
 import com.neojou.alsimugame.sim.model.TileSnapshot
 import com.neojou.alsimugame.sim.model.TileState
+import com.neojou.alsimugame.ui.theme.rememberAppFontFamily
 
-/** Placeholder palette for land / camp (M3-T2; no art assets). */
+/** Placeholder palette for land / camp. */
 object BoardColors {
     val Camp = Color(0xFFB08968)
     val Grass = Color(0xFF7CB342)
     val Farm = Color(0xFFA1887F)
     val Empty = Color(0xFF9E9E9E)
     val CellBorder = Color(0xFF5D4037)
+    val HoverBorder = Color(0xFF1565C0)
     val MaleMarker = Color(0xFF1976D2)
     val FemaleMarker = Color(0xFFC2185B)
     val DeadMarker = Color(0xFF616161)
@@ -49,10 +52,15 @@ object BoardColors {
     val LabelOnLight = Color(0xFF212121)
 }
 
+/** Hover target for board tooltips (GDD §6.3). */
+data class BoardHoverInfo(
+    val x: Int,
+    val y: Int,
+    val summary: String,
+)
+
 /**
- * Fixed top-down board ([SimConfig.GRID_SIZE]²) driven only by [SimSnapshot].
- *
- * Sizing: square fits min(maxWidth, maxHeight). [frameId] forces cell refresh each step.
+ * Fixed top-down board driven by [SimSnapshot], with optional cell hover callbacks.
  */
 @Composable
 fun BoardView(
@@ -60,9 +68,9 @@ fun BoardView(
     modifier: Modifier = Modifier,
     gridSize: Int = SimConfig.GRID_SIZE,
     frameId: Long = 0L,
+    onHover: (BoardHoverInfo?) -> Unit = {},
 ) {
     val appFont = rememberAppFontFamily()
-    // Key off frameId so maps rebuild every sim step (position / land / pending).
     val tileByPos = remember(frameId, snapshot.tiles) {
         snapshot.tiles.associateBy { it.x to it.y }
     }
@@ -110,6 +118,8 @@ fun BoardView(
                                 isCamp = isCamp,
                                 tile = tile,
                                 agents = agents,
+                                campFood = snapshot.campFood,
+                                onHover = onHover,
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight(),
@@ -131,6 +141,8 @@ private fun BoardCell(
     isCamp: Boolean,
     tile: TileSnapshot?,
     agents: List<AgentSnapshot>,
+    campFood: Int,
+    onHover: (BoardHoverInfo?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val appFont = rememberAppFontFamily()
@@ -146,10 +158,30 @@ private fun BoardCell(
             BoardColors.LabelOnLight
         }
 
+    val hoverSummary = remember(x, y, isCamp, tile, agents, campFood) {
+        buildHoverSummary(x, y, isCamp, tile, agents, campFood)
+    }
+
     Box(
         modifier = modifier
             .background(bg, RoundedCornerShape(6.dp))
             .border(1.5.dp, BoardColors.CellBorder, RoundedCornerShape(6.dp))
+            .pointerInput(hoverSummary) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        when (event.type) {
+                            PointerEventType.Enter, PointerEventType.Move -> {
+                                onHover(BoardHoverInfo(x, y, hoverSummary))
+                            }
+                            PointerEventType.Exit -> {
+                                onHover(null)
+                            }
+                            else -> Unit
+                        }
+                    }
+                }
+            }
             .padding(3.dp),
     ) {
         Text(
@@ -198,6 +230,37 @@ private fun BoardCell(
             modifier = Modifier.align(Alignment.BottomEnd),
         )
     }
+}
+
+private fun buildHoverSummary(
+    x: Int,
+    y: Int,
+    isCamp: Boolean,
+    tile: TileSnapshot?,
+    agents: List<AgentSnapshot>,
+    campFood: Int,
+): String {
+    val parts = mutableListOf<String>()
+    parts += "格 ($x,$y)"
+    if (isCamp) {
+        parts += "寨營 · 庫存 $campFood · 不可耕種"
+    } else if (tile != null) {
+        val remain = daysUntilLandTransition(tile.state, tile.ageDays)
+        val remainText = remain?.let { "距離轉換 ${it} 日" } ?: "開墾後進入田地循環"
+        parts += "${tileStateLabel(tile.state)} · 年齡 ${tile.ageDays} 日 · $remainText"
+        if (tile.state == TileState.FARM) {
+            parts += "待收 ${tile.pendingHarvest}/${SimConfig.MAX_PENDING_HARVEST}"
+        }
+    }
+    if (agents.isNotEmpty()) {
+        agents.forEach { a ->
+            parts += "${a.id}(${if (a.gender == Gender.MALE) "男" else "女"}) " +
+                "體力 ${a.stamina}/${SimConfig.MAX_STAMINA} · 攜帶 ${a.carriedFood} · " +
+                agentModeLabel(a.mode) +
+                if (a.returnHome) " · 回營中" else ""
+        }
+    }
+    return parts.joinToString(" ｜ ")
 }
 
 @Composable

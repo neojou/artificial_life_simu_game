@@ -10,8 +10,8 @@
 
 | 欄位 | 值 |
 |------|-----|
-| 當前 Milestone | **M4 HUD 與控制** |
-| 下一張待辦 | **M4-T3** |
+| 當前 Milestone | **M5 視覺 polish** |
+| 下一張待辦 | **M5-T2** |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
@@ -21,7 +21,7 @@
 - [x] **M1** 模擬核心
 - [x] **M2** 村民 AI
 - [x] **M3** 最小可視原型
-- [ ] **M4** HUD 與控制
+- [x] **M4** HUD 與控制
 - [ ] **M5** 視覺 polish
 - [ ] **M6** Seed / 統計 / Wasm 收斂
 
@@ -404,7 +404,7 @@ Stop when DoD is met.
 
 ## M4-T3 — 統計面板 + Hover 提示
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-24）  
 - **依賴**：M4-T2  
 - **用量**：~10%  
 - **目標**：土地計數、人口、累計生產；tile/agent 提示。  
@@ -416,8 +416,8 @@ Stop when DoD is met.
 - **非範圍**：粒子特效、音效
 
 **DoD**：
-- [ ] 統計數字與引擎一致（抽樣）
-- [ ] Hover 有資訊（Desktop）
+- [x] 統計數字與引擎一致（抽樣）
+- [x] Hover 有資訊（Desktop）
 
 **Grok Prompt**：
 ```
@@ -613,3 +613,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-24 | M4-T1 完成：HudView 年/日/晝夜 + 糧食大數字；下一張 M4-T2 |
 | 2026-07-24 | UI：取消日夜全畫面/棋盤 tint，固定淺色；M5-T1 2D 取消；光線留 3D |
 | 2026-07-24 | M4-T2 完成：ControlsView + Seed 輸入；下一張 M4-T3 |
+| 2026-07-24 | M4-T3 完成：StatsRecorder + StatsPanel + 棋盤 hover；M4 結束；下一張 M5-T2 |
