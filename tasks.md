@@ -11,7 +11,7 @@
 | 欄位 | 值 |
 |------|-----|
 | 當前 Milestone | **M4 HUD 與控制** |
-| 下一張待辦 | **M4-T1** |
+| 下一張待辦 | **M4-T2** |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
@@ -360,7 +360,7 @@ Fix integration bugs only. Stop when DoD is met.
 
 ## M4-T1 — 頂部 HUD
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-24）  
 - **依賴**：M3-T3  
 - **用量**：~10%  
 - **目標**：時間與糧食常駐顯示。  
@@ -368,8 +368,8 @@ Fix integration bugs only. Stop when DoD is met.
 - **非範圍**：統計面板、seed 輸入
 
 **DoD**：
-- [ ] HUD 數值與 snapshot 一致
-- [ ] Desktop compile + 手動對一下 day/food
+- [x] HUD 數值與 snapshot 一致
+- [x] Desktop compile + 手動對一下 day/food
 
 **Grok Prompt**：
 ```
@@ -624,3 +624,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-23 | 設計更新：地圖 3×3→5×5（營 2,2）；pending_harvest 上限 3 |
 | 2026-07-23 | Wasm 中文：內嵌 Noto Sans TC + AppTheme（Skiko 無系統 CJK 回退） |
 | 2026-07-24 | M3-T3 完成：UiFrame/autoplay/日夜 tint；預設 5×；M3 結束；下一張 M4-T1 |
+| 2026-07-24 | M4-T1 完成：HudView 年/日/晝夜 + 糧食大數字；下一張 M4-T2 |

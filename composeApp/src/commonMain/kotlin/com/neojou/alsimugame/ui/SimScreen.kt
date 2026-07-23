@@ -42,7 +42,6 @@ fun rememberSimulationController(
     DisposableEffect(controller) {
         onDispose { controller.dispose() }
     }
-    // M3-T3: start living simulation automatically; user can still pause.
     LaunchedEffect(controller, autoPlay) {
         if (autoPlay) {
             controller.play()
@@ -52,8 +51,7 @@ fun rememberSimulationController(
 }
 
 /**
- * Simulation screen: status, board, controls.
- * Play loop updates [UiFrame] so board/agents animate every sim hour.
+ * Simulation screen: top [HudView], board, controls.
  */
 @Composable
 fun SimScreen(
@@ -80,19 +78,17 @@ fun SimScreen(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = "小小寨營 / Tiny Camp",
-                style = MaterialTheme.typography.headlineSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            CompactStatusReadout(
+            // M4-T1: persistent top HUD (year/day/phase + camp food)
+            HudView(snapshot = snapshot)
+
+            // Secondary debug line (seed / play / agents) — not the main HUD
+            SecondaryStatusLine(
                 snapshot = snapshot,
                 seed = seed,
                 speed = speed,
                 playing = playing,
-                frameId = frame.id,
             )
+
             HorizontalDivider(color = onSurface.copy(alpha = 0.2f))
 
             BoardView(
@@ -120,21 +116,18 @@ fun SimScreen(
     }
 }
 
-/** Simple day/night surface colors (M3-T3; not full art). */
 private object NightPalette {
     val Surface = Color(0xFF151B28)
     val OnSurface = Color(0xFFE6EAF2)
 }
 
 @Composable
-private fun CompactStatusReadout(
+private fun SecondaryStatusLine(
     snapshot: SimSnapshot,
     seed: Long,
     speed: Int,
     playing: Boolean,
-    frameId: Long,
 ) {
-    val phase = if (snapshot.isDay) "白天" else "夜晚"
     val status = when {
         snapshot.isGameOver -> "結束"
         playing -> "播放中"
@@ -150,18 +143,12 @@ private fun CompactStatusReadout(
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(
-            text = "狀態 $status · Seed $seed · 第 ${snapshot.day} 日 時辰 ${snapshot.hour}（$phase）· ${speed}×",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (playing) FontWeight.SemiBold else FontWeight.Normal,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = "糧食 ${snapshot.campFood} · 村民 ${snapshot.livingAgentCount}/${snapshot.agents.size} · " +
-                "土地 草$grass / 田$farm / 空$empty · 待收 ${snapshot.totalPendingHarvest()} · 幀 $frameId",
+            text = "$status · Seed $seed · ${speed}× · 村民 ${snapshot.livingAgentCount}/${snapshot.agents.size} · " +
+                "草$grass / 田$farm / 空$empty",
             style = MaterialTheme.typography.bodySmall,
-            color = LocalDimContentColor(),
-            maxLines = 2,
+            fontWeight = if (playing) FontWeight.SemiBold else FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         snapshot.agents.forEach { agent ->
@@ -175,10 +162,6 @@ private fun CompactStatusReadout(
         }
     }
 }
-
-@Composable
-private fun LocalDimContentColor(): Color =
-    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
 
 @Composable
 private fun ControlRow(

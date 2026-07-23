@@ -41,8 +41,14 @@ object SimConfig {
     const val INITIAL_CAMP_FOOD: Int = 10
 
     /**
+     * Compressed calendar: one in-game year has this many days
+     * (each day ≈ one real-world month in the GDD fiction).
+     */
+    const val DAYS_PER_YEAR: Int = 12
+
+    /**
      * Agent lifespan in days (fixed for v0.1).
-     * 5 years × 12 days/year (compressed calendar) = 60 days,
+     * 5 years × [DAYS_PER_YEAR] = 60 days,
      * so land FARM/EMPTY cycles (12 days each) are observable within one life.
      */
     const val LIFESPAN_DAYS: Int = 60
