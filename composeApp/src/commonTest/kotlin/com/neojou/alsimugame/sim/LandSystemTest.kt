@@ -13,9 +13,12 @@ class LandSystemTest {
 
     private val samplePos = GridPos(0, 0)
 
+    private fun landOnlyEngine(): SimulationEngine =
+        SimulationEngine().also { it.aiEnabled = false }
+
     @Test
     fun farmBecomesEmpty_afterLandStateDays() {
-        val engine = SimulationEngine()
+        val engine = landOnlyEngine()
         val tile = engine.grid.tileAt(samplePos)
         assertNotNull(tile)
         LandSystem.till(tile)
@@ -31,7 +34,7 @@ class LandSystemTest {
 
     @Test
     fun emptyBecomesGrass_afterLandStateDays() {
-        val engine = SimulationEngine()
+        val engine = landOnlyEngine()
         val tile = engine.grid.tileAt(samplePos)
         assertNotNull(tile)
         tile.state = TileState.EMPTY
@@ -46,7 +49,7 @@ class LandSystemTest {
 
     @Test
     fun farmThenEmptyThenGrass_fullCycle_takesTwoLandStatePeriods() {
-        val engine = SimulationEngine()
+        val engine = landOnlyEngine()
         val tile = engine.grid.tileAt(samplePos)
         assertNotNull(tile)
         LandSystem.till(tile)
@@ -60,7 +63,7 @@ class LandSystemTest {
 
     @Test
     fun threeNewDays_accumulatePendingHarvestOnFarm() {
-        val engine = SimulationEngine()
+        val engine = landOnlyEngine()
         val tile = engine.grid.tileAt(samplePos)
         assertNotNull(tile)
         LandSystem.till(tile)
@@ -75,7 +78,7 @@ class LandSystemTest {
 
     @Test
     fun grassDoesNotGainPendingHarvest() {
-        val engine = SimulationEngine()
+        val engine = landOnlyEngine()
         val tile = engine.grid.tileAt(samplePos)
         assertNotNull(tile)
         assertEquals(TileState.GRASS, tile.state)
@@ -88,7 +91,7 @@ class LandSystemTest {
 
     @Test
     fun campHasNoTile_landSystemDoesNotCreateOne() {
-        val engine = SimulationEngine()
+        val engine = landOnlyEngine()
         engine.runDays(1)
         assertEquals(null, engine.grid.tileAt(GridPos.CAMP))
     }

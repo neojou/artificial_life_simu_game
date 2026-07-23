@@ -8,9 +8,12 @@ import kotlin.test.assertTrue
 
 class SimulationEngineTimeLandTest {
 
+    private fun timeOnlyEngine(): SimulationEngine =
+        SimulationEngine().also { it.aiEnabled = false }
+
     @Test
     fun stepHour_advancesClock_withoutDayWrapUntilSixthHour() {
-        val engine = SimulationEngine()
+        val engine = timeOnlyEngine()
         assertEquals(0, engine.clock.day)
         assertEquals(0, engine.clock.hour)
         assertTrue(engine.clock.isDay)
@@ -32,7 +35,7 @@ class SimulationEngineTimeLandTest {
 
     @Test
     fun runDays_advancesDayCounter() {
-        val engine = SimulationEngine()
+        val engine = timeOnlyEngine()
         engine.runDays(2)
         assertEquals(2, engine.clock.day)
         assertEquals(0, engine.clock.hour)
@@ -41,7 +44,7 @@ class SimulationEngineTimeLandTest {
 
     @Test
     fun midDay_isNightFlagsTrackHour() {
-        val engine = SimulationEngine()
+        val engine = timeOnlyEngine()
         // hour 0,1,2 day; after 3 steps → hour 3 night
         repeat(3) { engine.stepHour() }
         assertEquals(3, engine.clock.hour)

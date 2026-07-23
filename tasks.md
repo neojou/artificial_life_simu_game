@@ -10,8 +10,8 @@
 
 | 欄位 | 值 |
 |------|-----|
-| 當前 Milestone | **M2 村民 AI** |
-| 下一張待辦 | **M2-T1** |
+| 當前 Milestone | **M3 最小可視原型** |
+| 下一張待辦 | **M3-T1** |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
@@ -19,7 +19,7 @@
 
 - [x] **M0** 專案憲章（文件）
 - [x] **M1** 模擬核心
-- [ ] **M2** 村民 AI
+- [x] **M2** 村民 AI
 - [ ] **M3** 最小可視原型
 - [ ] **M4** HUD 與控制
 - [ ] **M5** 視覺 polish
@@ -193,7 +193,7 @@ Determinism tests required. No agent brain UI. Stop when DoD is met.
 
 ## M2-T1 — 八向移動與回營路徑
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-23）  
 - **依賴**：M1-T4  
 - **用量**：~10%  
 - **目標**：`Pathfinder` + agent 移動一步（扣體力與時間由 engine 執行）。  
@@ -205,8 +205,8 @@ Determinism tests required. No agent brain UI. Stop when DoD is met.
 - **非範圍**：開墾決策、夜間邏輯全文
 
 **DoD**：
-- [ ] Path/move 單元測試 ≥4 則通過
-- [ ] Engine 可在測試中手動移動 agent
+- [x] Path/move 單元測試 ≥4 則通過
+- [x] Engine 可在測試中手動移動 agent
 
 **Grok Prompt**：
 ```
@@ -220,7 +220,7 @@ Tests required. No full brain. Stop when DoD is met.
 
 ## M2-T2 — 行為優先序（AgentBrain）
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-23）  
 - **依賴**：M2-T1  
 - **用量**：~10%  
 - **目標**：實作 GDD §5 優先序 + 體力過低回營保險。  
@@ -232,8 +232,8 @@ Tests required. No full brain. Stop when DoD is met.
 - **非範圍**：UI、第二階段個性差異
 
 **DoD**：
-- [ ] 優先序相關測試 ≥5 則通過
-- [ ] `runDays(3)` 有 agent 離開過寨營或改變過土地（依 seed；至少一個整合測試證明 brain 有接上 engine）
+- [x] 優先序相關測試 ≥5 則通過
+- [x] `runDays(3)` 有 agent 離開過寨營或改變過土地（依 seed；至少一個整合測試證明 brain 有接上 engine）
 
 **Grok Prompt**：
 ```
@@ -247,7 +247,7 @@ Unit + light integration tests. No UI. Stop when DoD is met.
 
 ## M2-T3 — 雙村民、壽命與死亡
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-23）  
 - **依賴**：M2-T2  
 - **用量**：~10%  
 - **目標**：男+女兩 agent；壽命 12 日；死亡規則可測。  
@@ -260,9 +260,9 @@ Unit + light integration tests. No UI. Stop when DoD is met.
 - **非範圍**：繁殖、UI
 
 **DoD**：
-- [ ] 雙 agent 初始測試
-- [ ] 壽命/死亡測試
-- [ ] compile + tests 綠
+- [x] 雙 agent 初始測試
+- [x] 壽命/死亡測試
+- [x] compile + tests 綠
 
 **Grok Prompt**：
 ```
@@ -616,3 +616,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-23 | M1-T2 完成：Clock + LandSystem + slim SimulationEngine；下一張 M1-T3 |
 | 2026-07-23 | M1-T3 完成：Economy API + campFood on engine；下一張 M1-T4 |
 | 2026-07-23 | M1-T4 完成：SimRng + snapshot + 雙 agent 初始世界；M1 結束；下一張 M2-T1 |
+| 2026-07-23 | M2 整包完成（T1 Pathfinder/move、T2 AgentBrain、T3 壽命/死亡）；下一張 M3-T1 |

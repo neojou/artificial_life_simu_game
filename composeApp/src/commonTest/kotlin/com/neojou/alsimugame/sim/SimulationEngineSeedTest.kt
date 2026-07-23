@@ -83,20 +83,18 @@ class SimulationEngineSeedTest {
     }
 
     @Test
-    fun runDays12_doesNotCrash_andAgesAgents() {
-        val engine = SimulationEngine.create(7L)
+    fun runDays12_withAiDisabled_agesAgentsToLifespanDeath() {
+        val engine = SimulationEngine.create(7L).also { it.aiEnabled = false }
         engine.runDays(12)
         val snap = engine.snapshot()
         assertEquals(12, snap.day)
         assertEquals(0, snap.hour)
-        assertEquals(SimConfig.INITIAL_CAMP_FOOD, snap.campFood)
-        // Still all grass (no tilling without AI)
-        assertEquals(8, snap.landStateCounts()[TileState.GRASS])
+        // Lifespan: ageDays reaches 12 on the 12th day boundary → DEAD
         for (agent in snap.agents) {
-            assertEquals(12, agent.ageDays)
-            assertEquals(AgentMode.RESTING, agent.mode)
+            assertEquals(SimConfig.LIFESPAN_DAYS, agent.ageDays)
+            assertEquals(AgentMode.DEAD, agent.mode)
         }
-        assertFalse(snap.isGameOver)
+        assertTrue(snap.isGameOver)
     }
 
     @Test

@@ -1,31 +1,29 @@
 package com.neojou.alsimugame.sim
 
+import com.neojou.alsimugame.sim.ai.AgentAction
+import com.neojou.alsimugame.sim.ai.AgentBrain
+import com.neojou.alsimugame.sim.ai.BrainWorld
 import com.neojou.alsimugame.sim.model.Agent
 import com.neojou.alsimugame.sim.model.AgentMode
 import com.neojou.alsimugame.sim.model.AgentSnapshot
 import com.neojou.alsimugame.sim.model.Gender
+import com.neojou.alsimugame.sim.model.GridPos
 import com.neojou.alsimugame.sim.model.SimConfig
 import com.neojou.alsimugame.sim.model.SimSnapshot
 import com.neojou.alsimugame.sim.model.TileSnapshot
+import com.neojou.alsimugame.sim.path.Pathfinder
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
  * Headless simulation driver for Tiny Camp.
  *
- * M1-T4 scope:
- * - Seeded [SimRng]
- * - Default world: 3×3 grass ring, camp food, two resting villagers at camp
- * - [stepHour] / [runDays] / [runHours] advance time + land
- * - Agents stay RESTING (no brain yet)
- * - [snapshot] for UI and determinism checks
- *
- * @property seed RNG seed that produced this world.
- * @property rng Seeded random source (for M2+ decisions).
- * @property grid World map.
- * @property clock In-game calendar.
- * @property campFood Global food at the homestead.
- * @property agents Mutable villager list (default male + female).
+ * Responsibilities:
+ * - Seeded [SimRng] and default world (grass ring, camp food, two villagers)
+ * - Time / land progression
+ * - Agent movement ([tryMove]) and priority AI ([AgentBrain])
+ * - Lifespan / stranded-at-night death and [isGameOver]
+ * - Immutable [snapshot] for UI and determinism checks
  */
 class SimulationEngine(
     val seed: Long = 0L,
@@ -38,6 +36,12 @@ class SimulationEngine(
 
     val agents: MutableList<Agent> = agents.toMutableList()
 
+    /**
+     * When false, [stepHour] only advances time/land (and lifespan aging),
+     * without [AgentBrain] actions. Useful for pure land unit tests.
+     */
+    var aiEnabled: Boolean = true
+
     init {
         require(campFood >= 0) { "campFood must be >= 0 (got $campFood)" }
     }
@@ -46,27 +50,149 @@ class SimulationEngine(
         get() = agents.none { it.isAlive }
 
     /**
+     * Attempts a single adjacent step for [agent] to [dest].
+     *
+     * Fails when: dead, out of bounds, not adjacent, or (when [force] is false)
+     * insufficient stamina. When [force] is true, stamina is spent if possible
+     * but the move still proceeds (night emergency return).
+     *
+     * @return `true` if position changed.
+     */
+    fun tryMove(agent: Agent, dest: GridPos, force: Boolean = false): Boolean {
+        if (!agent.isAlive) return false
+        if (!grid.isInBounds(dest)) return false
+        if (!Pathfinder.areAdjacent(agent.pos, dest)) return false
+
+        if (force) {
+            Economy.tryPayMove(agent)
+            agent.pos = dest
+            return true
+        }
+        if (!Economy.tryPayMove(agent)) return false
+        agent.pos = dest
+        return true
+    }
+
+    /**
      * Advances one in-game hour.
      *
-     * On day wrap (`hour` 5 → 0):
-     * 1. Land ages and may transition.
-     * 2. Each remaining FARM tile gains daily yield.
-     * 3. Living agents age one day (lifespan enforcement is M2-T3).
-     *
-     * Agent AI actions are intentionally no-op (mode stays [AgentMode.RESTING]).
+     * 1. Advance clock; on day wrap: land aging/yield, agent age, lifespan death,
+     *    morning deposit+supply for agents at camp.
+     * 2. Each living agent: [AgentBrain.decide] + execute (one action / hour).
+     * 3. Night rest at camp when hour enters night; stranded-at-night death check.
      */
     fun stepHour() {
         val crossedIntoNewDay = clock.advanceHour()
         if (crossedIntoNewDay) {
-            LandSystem.ageAndTransition(grid)
-            LandSystem.applyDailyFarmYield(grid)
+            onNewDay()
+        }
+
+        if (!aiEnabled || isGameOver) return
+
+        // Entering night: passive rest for agents already at camp (once per night).
+        if (clock.hour == Clock.DAY_HOUR_COUNT) {
             for (agent in agents) {
-                if (agent.isAlive) {
-                    agent.ageDays += 1
+                if (agent.isAlive && agent.isAtCamp) {
+                    Economy.applyNightRest(agent)
                 }
             }
         }
-        // M2: AgentBrain tick per living agent goes here.
+
+        val world = BrainWorld(grid = grid, clock = clock, rng = rng)
+        for (agent in agents) {
+            if (!agent.isAlive) continue
+            val action = AgentBrain.decide(agent, world)
+            execute(agent, action)
+            applyStrandedNightDeath(agent)
+        }
+    }
+
+    private fun onNewDay() {
+        LandSystem.ageAndTransition(grid)
+        LandSystem.applyDailyFarmYield(grid)
+
+        for (agent in agents) {
+            if (!agent.isAlive) continue
+            agent.ageDays += 1
+            if (agent.ageDays >= SimConfig.LIFESPAN_DAYS) {
+                kill(agent, reason = "lifespan")
+            }
+        }
+
+        // Morning supply for living agents at camp (GDD §5.1 daily supply).
+        for (agent in agents) {
+            if (!agent.isAlive || !agent.isAtCamp) continue
+            campFood = Economy.depositCarriedFood(agent, campFood)
+            campFood = Economy.supplyStaminaFromCamp(agent, campFood)
+            agent.mode = AgentMode.RESTING
+        }
+    }
+
+    private fun execute(agent: Agent, action: AgentAction) {
+        when (action) {
+            AgentAction.None -> Unit
+            is AgentAction.Move -> {
+                val moved = tryMove(agent, action.dest, force = action.force)
+                if (moved && agent.mode != AgentMode.RETURNING && agent.mode != AgentMode.TILLING) {
+                    // Keep EXPLORING after a successful scout step.
+                    if (!agent.returnHome) {
+                        agent.mode = AgentMode.EXPLORING
+                    }
+                }
+            }
+            AgentAction.TillHere -> {
+                val tile = grid.tileAt(agent.pos) ?: return
+                if (Economy.tryPayAndTill(agent, tile)) {
+                    agent.returnHome = true
+                    agent.mode = AgentMode.RETURNING
+                }
+            }
+            AgentAction.HarvestHere -> {
+                val tile = grid.tileAt(agent.pos) ?: return
+                if (Economy.tryHarvest(agent, tile) != null) {
+                    agent.returnHome = true
+                    agent.mode = AgentMode.RETURNING
+                }
+            }
+            AgentAction.SupplyAtCamp -> {
+                if (!agent.isAtCamp) return
+                campFood = Economy.depositCarriedFood(agent, campFood)
+                campFood = Economy.supplyStaminaFromCamp(agent, campFood)
+                agent.mode = AgentMode.RESTING
+                agent.returnHome = false
+            }
+            AgentAction.Rest -> {
+                agent.mode = AgentMode.RESTING
+            }
+        }
+    }
+
+    /**
+     * Simplified stranded rule (M2-T3 / GDD §4.2):
+     * if it is night, the agent is not at camp, and stamina is 0 after acting,
+     * they die (cannot safely remain outside).
+     *
+     * On the default 3×3 map, emergency [force] return usually prevents this
+     * when the agent is adjacent to camp; the rule remains for edge cases and tests.
+     */
+    private fun applyStrandedNightDeath(agent: Agent) {
+        if (!agent.isAlive) return
+        if (clock.isNight && !agent.isAtCamp && agent.stamina <= 0) {
+            kill(agent, reason = "stranded_night")
+        }
+    }
+
+    /**
+     * Marks [agent] dead. Idempotent.
+     */
+    fun kill(agent: Agent, reason: String = "unspecified") {
+        if (!agent.isAlive) return
+        agent.mode = AgentMode.DEAD
+        agent.path = emptyList()
+        agent.returnHome = false
+        // reason reserved for future logging / stats
+        @Suppress("UNUSED_VARIABLE")
+        val ignored = reason
     }
 
     /**
@@ -83,9 +209,7 @@ class SimulationEngine(
         repeat(hours) { stepHour() }
     }
 
-    /**
-     * Immutable UI / test projection of the current world.
-     */
+    /** Immutable UI / test projection of the current world. */
     fun snapshot(): SimSnapshot {
         val tiles = buildList {
             grid.forEachPeripheral { pos, tile ->
@@ -126,9 +250,6 @@ class SimulationEngine(
         )
     }
 
-    /**
-     * JSON encoding of [snapshot] (minimal save / share skeleton).
-     */
     fun snapshotJson(): String = snapshotJsonFormat.encodeToString(snapshot())
 
     companion object {
@@ -137,16 +258,11 @@ class SimulationEngine(
             encodeDefaults = true
         }
 
-        /** MVP starting pair: adult male + adult female at camp. */
         fun defaultAgents(): List<Agent> = listOf(
             Agent(id = "villager-m", gender = Gender.MALE),
             Agent(id = "villager-f", gender = Gender.FEMALE),
         )
 
-        /**
-         * Creates a fresh engine for [seed] with GDD initial conditions:
-         * all grass, [SimConfig.INITIAL_CAMP_FOOD], two agents at camp.
-         */
         fun create(seed: Long): SimulationEngine = SimulationEngine(seed = seed)
     }
 }
