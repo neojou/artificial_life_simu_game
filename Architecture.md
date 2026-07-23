@@ -37,7 +37,7 @@
 | 層 | 職責 | 禁止 |
 |----|------|------|
 | **Platform** | 視窗 / `ComposeViewport`、平台 Ktor engine | 遊戲規則 |
-| **UI** | 繪製、輸入（僅速度/暫停/seed）、訂閱 snapshot | 自行改寫土地規則 |
+| **UI** | 繪製（tile/pawn sprite）、輸入（速度/暫停/seed/hover）、訂閱 snapshot | 自行改寫土地規則 |
 | **Simulation** | 時間、土地、糧食、AI、勝負 | Compose / Android / Browser API |
 
 所有**可測試遊戲邏輯必須在 commonMain**，且不依賴 UI。
@@ -72,11 +72,14 @@ composeApp/src/
       SimRng.kt                     # Random(seed) 包裝
     ui/
       SimScreen.kt
-      BoardView.kt
+      BoardView.kt                  # 正俯視 tile + pawn（RimWorld 感）
       HudView.kt
       ControlsView.kt
       StatsPanel.kt
       theme/                        # AppTheme 字型等；2D 固定淺色（無日夜全畫面 tint）
+    composeResources/
+      drawable/                     # tile_* / pawn_* PNG
+      font/                         # NotoSansTC
     tools/
       MyLog.kt
       SystemSettings.kt
@@ -241,9 +244,10 @@ class SimulationController(
 
 - Controller 內 coroutine：`while (playing) { engine.stepHour(); delay(baseMs / speed) }`
 - **UI 只讀 `SimSnapshot`**，禁止直接 mutate `Tile` / `Agent`。
-- 固定 2.5D / 俯視 5×5 全圖；**無相機平移縮放**（GDD §6.1）。
-
-M3 可用色塊 + 文字；M5 再換 sprite。日夜僅 HUD 標示；全畫面光線留給 3D。
+- **正俯視 2D** 5×5 全圖；**無相機平移縮放**（GDD §6.1）。
+- 土地：`painterResource` 依 `TileState`（+ pending 可換 ripe tile）。
+- 角色：依 gender / mode / carried 選 pawn sprite，疊在格心。
+- 日夜僅 HUD 標示；全畫面光線留給 3D。
 
 ---
 

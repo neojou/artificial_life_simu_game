@@ -64,6 +64,7 @@ UI 任務：Desktop `run` 可啟動且無 crash 即可；Wasm 非必要不驗證
 - 日誌可用既有 `com.neojou.tools.MyLog`；模組 tag 簡短（如 `SIM`, `AI`, `UI`）。
 - 公開 API 與非顯而易見邏輯寫 KDoc（精簡即可）。
 - **中文 UI（Wasm）**：Compose/Skiko 不會用瀏覽器 CSS 字型；必須用 `composeResources/font` 內嵌 CJK 字型（見 `ui/theme/AppTheme.kt`、`licenses/FONTS.md`）。
+- **視覺（v0.1）**：正俯視 2D tile + pawn（非純色塊）；資產在 `composeResources/drawable/`（`tile_*`、`pawn_*`）。風格：淡雅手繪/水彩、Q 版角色。日夜不壓暗全畫面。Wasm 注意 PNG 尺寸。
 
 ### 套件根
 

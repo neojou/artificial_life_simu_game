@@ -11,7 +11,7 @@
 | 欄位 | 值 |
 |------|-----|
 | 當前 Milestone | **M5 視覺 polish** |
-| 下一張待辦 | **M5-T2** |
+| 下一張待辦 | **M5-T2**（mode 表現已有基礎 sprite；可再強化） |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
@@ -428,7 +428,18 @@ Minimal StatsRecorder fields if missing. Stop when DoD is met.
 
 ---
 
-# M5 — 視覺 polish
+# M5 — 視覺改版（RimWorld 式正俯視）
+
+## Vis-A — 場景 tile + 角色靜態 sprite（階段 A）
+
+- [x] **狀態**：done（2026-07-24）  
+- **目標**：可玩且好看的俯視地圖（非純色塊）；男女可辨。  
+- **範圍**：AI 生成 tile/pawn → BoardView Image；mode 用姿勢變體；不做 8 向 walk。  
+- **DoD**：
+  - [x] 草/田/空/營可辨
+  - [x] 男女 idle sprite
+  - [x] Play 角色隨格移動
+  - [x] desktopTest + wasm compile
 
 ## M5-T1 — 日夜色調（2D 已取消）
 
@@ -614,3 +625,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-24 | UI：取消日夜全畫面/棋盤 tint，固定淺色；M5-T1 2D 取消；光線留 3D |
 | 2026-07-24 | M4-T2 完成：ControlsView + Seed 輸入；下一張 M4-T3 |
 | 2026-07-24 | M4-T3 完成：StatsRecorder + StatsPanel + 棋盤 hover；M4 結束；下一張 M5-T2 |
+| 2026-07-24 | Vis-A：正俯視 tile+pawn 資產與 BoardView 重寫；GDD 視角改 RimWorld 式 2D |

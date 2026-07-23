@@ -1,5 +1,6 @@
 package com.neojou.alsimugame.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,14 +20,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
+import com.neojou.alsimugame.composeapp.generated.resources.Res
+import com.neojou.alsimugame.composeapp.generated.resources.tile_camp
+import com.neojou.alsimugame.composeapp.generated.resources.tile_empty
+import com.neojou.alsimugame.composeapp.generated.resources.tile_farm
+import com.neojou.alsimugame.composeapp.generated.resources.tile_grass
 import com.neojou.alsimugame.sim.model.AgentMode
 import com.neojou.alsimugame.sim.model.AgentSnapshot
 import com.neojou.alsimugame.sim.model.Gender
@@ -36,21 +42,13 @@ import com.neojou.alsimugame.sim.model.SimSnapshot
 import com.neojou.alsimugame.sim.model.TileSnapshot
 import com.neojou.alsimugame.sim.model.TileState
 import com.neojou.alsimugame.ui.theme.rememberAppFontFamily
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
-/** Placeholder palette for land / camp. */
-object BoardColors {
-    val Camp = Color(0xFFB08968)
-    val Grass = Color(0xFF7CB342)
-    val Farm = Color(0xFFA1887F)
-    val Empty = Color(0xFF9E9E9E)
-    val CellBorder = Color(0xFF5D4037)
-    val HoverBorder = Color(0xFF1565C0)
-    val MaleMarker = Color(0xFF1976D2)
-    val FemaleMarker = Color(0xFFC2185B)
-    val DeadMarker = Color(0xFF616161)
-    val LabelOnDark = Color(0xFFFFFFFF)
-    val LabelOnLight = Color(0xFF212121)
-}
+/** Soft paper-like board surround. */
+private val BoardMatte = Color(0xFFF3EDE3)
+private val CellGapColor = Color(0xFFE8E0D4)
+private val HoverBorder = Color(0xFF5D8AA8)
 
 /** Hover target for board tooltips (GDD §6.3). */
 data class BoardHoverInfo(
@@ -60,7 +58,7 @@ data class BoardHoverInfo(
 )
 
 /**
- * Fixed top-down board driven by [SimSnapshot], with optional cell hover callbacks.
+ * Top-down RimWorld-style board: painted tiles + chibi pawn sprites.
  */
 @Composable
 fun BoardView(
@@ -79,24 +77,31 @@ fun BoardView(
     }
 
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .background(BoardMatte, RoundedCornerShape(12.dp))
+            .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "地圖 ${gridSize}×${gridSize}",
+            text = "小小寨營",
             style = MaterialTheme.typography.titleSmall,
             fontFamily = appFont,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF5D4E37),
         )
 
         BoxWithConstraints(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .background(CellGapColor, RoundedCornerShape(8.dp))
+                .padding(3.dp),
             contentAlignment = Alignment.Center,
         ) {
-            val gap = 4.dp
-            val side = min(maxWidth, maxHeight) * 0.98f
+            val gap = 2.dp
+            val side = min(maxWidth, maxHeight) * 0.99f
             Column(
                 modifier = Modifier.size(side),
                 verticalArrangement = Arrangement.spacedBy(gap),
@@ -146,26 +151,14 @@ private fun BoardCell(
     modifier: Modifier = Modifier,
 ) {
     val appFont = rememberAppFontFamily()
-    val bg = when {
-        isCamp -> BoardColors.Camp
-        tile == null -> BoardColors.Empty
-        else -> colorForTileState(tile.state)
-    }
-    val labelColor =
-        if (isCamp || tile?.state == TileState.FARM || tile?.state == TileState.EMPTY) {
-            BoardColors.LabelOnDark
-        } else {
-            BoardColors.LabelOnLight
-        }
-
+    val tileRes = WorldAssets.tileFor(isCamp, tile)
     val hoverSummary = remember(x, y, isCamp, tile, agents, campFood) {
         buildHoverSummary(x, y, isCamp, tile, agents, campFood)
     }
 
     Box(
         modifier = modifier
-            .background(bg, RoundedCornerShape(6.dp))
-            .border(1.5.dp, BoardColors.CellBorder, RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(4.dp))
             .pointerInput(hoverSummary) {
                 awaitPointerEventScope {
                     while (true) {
@@ -174,61 +167,59 @@ private fun BoardCell(
                             PointerEventType.Enter, PointerEventType.Move -> {
                                 onHover(BoardHoverInfo(x, y, hoverSummary))
                             }
-                            PointerEventType.Exit -> {
-                                onHover(null)
-                            }
+                            PointerEventType.Exit -> onHover(null)
                             else -> Unit
                         }
                     }
                 }
-            }
-            .padding(3.dp),
-    ) {
-        Text(
-            text = when {
-                isCamp -> "寨營"
-                tile == null -> "?"
-                else -> shortState(tile.state)
             },
-            color = labelColor,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = appFont,
-            modifier = Modifier.align(Alignment.TopStart),
+    ) {
+        Image(
+            painter = painterResource(tileRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
         )
 
+        // Optional tiny label for farm pending
         if (tile != null && tile.state == TileState.FARM && tile.pendingHarvest > 0) {
             Text(
-                text = "穗${tile.pendingHarvest}",
-                color = labelColor,
-                fontSize = 11.sp,
+                text = "×${tile.pendingHarvest}",
+                color = Color(0xFF5D4037),
+                fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = appFont,
-                modifier = Modifier.align(Alignment.TopEnd),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(2.dp)
+                    .background(Color.White.copy(alpha = 0.65f), RoundedCornerShape(3.dp))
+                    .padding(horizontal = 3.dp, vertical = 1.dp),
             )
         }
 
+        // Pawns stacked near cell center
         if (agents.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy((-4).dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 agents.forEach { agent ->
-                    AgentMarker(agent = agent, fontFamily = appFont)
+                    val alpha = if (agent.mode == AgentMode.DEAD) 0.4f else 1f
+                    Image(
+                        painter = painterResource(WorldAssets.pawnFor(agent)),
+                        contentDescription = agent.id,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxHeight(0.75f)
+                            .fillMaxWidth(if (agents.size > 1) 0.42f else 0.55f),
+                        alpha = alpha,
+                    )
                 }
             }
         }
-
-        Text(
-            text = "$x,$y",
-            color = labelColor.copy(alpha = 0.5f),
-            fontSize = 9.sp,
-            fontFamily = appFont,
-            modifier = Modifier.align(Alignment.BottomEnd),
-        )
     }
 }
 
@@ -264,40 +255,6 @@ private fun buildHoverSummary(
 }
 
 @Composable
-private fun AgentMarker(
-    agent: AgentSnapshot,
-    fontFamily: androidx.compose.ui.text.font.FontFamily,
-) {
-    val alive = agent.mode != AgentMode.DEAD
-    val color = when {
-        !alive -> BoardColors.DeadMarker
-        agent.gender == Gender.MALE -> BoardColors.MaleMarker
-        else -> BoardColors.FemaleMarker
-    }
-    val letter = when {
-        !alive -> "×"
-        agent.gender == Gender.MALE -> "M"
-        else -> "F"
-    }
-    Box(
-        modifier = Modifier
-            .size(20.dp)
-            .background(color, CircleShape)
-            .border(1.dp, Color.White.copy(alpha = 0.7f), CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = letter,
-            color = Color.White,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = fontFamily,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-@Composable
 private fun BoardLegend() {
     val appFont = rememberAppFontFamily()
     Row(
@@ -305,22 +262,18 @@ private fun BoardLegend() {
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        LegendSwatch(BoardColors.Camp, "寨營", appFont)
-        LegendSwatch(BoardColors.Grass, "草地", appFont)
-        LegendSwatch(BoardColors.Farm, "田地", appFont)
-        LegendSwatch(BoardColors.Empty, "空地", appFont)
-        Text(
-            "M/F=村民",
-            style = MaterialTheme.typography.labelSmall,
-            fontFamily = appFont,
-        )
+        LegendTile(Res.drawable.tile_grass, "草地", appFont)
+        LegendTile(Res.drawable.tile_farm, "田地", appFont)
+        LegendTile(Res.drawable.tile_empty, "空地", appFont)
+        LegendTile(Res.drawable.tile_camp, "寨營", appFont)
     }
 }
 
 @Composable
-private fun LegendSwatch(
-    color: Color,
+private fun LegendTile(
+    res: DrawableResource,
     label: String,
     fontFamily: androidx.compose.ui.text.font.FontFamily,
 ) {
@@ -328,11 +281,13 @@ private fun LegendSwatch(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Box(
+        Image(
+            painter = painterResource(res),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(12.dp)
-                .background(color, RoundedCornerShape(2.dp))
-                .border(0.5.dp, BoardColors.CellBorder, RoundedCornerShape(2.dp)),
+                .size(16.dp)
+                .clip(RoundedCornerShape(3.dp)),
         )
         Text(
             label,
@@ -340,16 +295,4 @@ private fun LegendSwatch(
             fontFamily = fontFamily,
         )
     }
-}
-
-private fun colorForTileState(state: TileState): Color = when (state) {
-    TileState.GRASS -> BoardColors.Grass
-    TileState.FARM -> BoardColors.Farm
-    TileState.EMPTY -> BoardColors.Empty
-}
-
-private fun shortState(state: TileState): String = when (state) {
-    TileState.GRASS -> "草"
-    TileState.FARM -> "田"
-    TileState.EMPTY -> "空"
 }
