@@ -27,9 +27,13 @@ class SimulationControllerTest {
         val id0 = controller.frame.value.id
 
         controller.stepOnce()
+        advanceTimeBy(SimulationController.STEP_ONCE_ANIM_MS + 50)
+        runCurrent()
+
         assertEquals(1, controller.frame.value.snapshot.hour)
         assertEquals(0, controller.frame.value.snapshot.day)
         assertTrue(controller.frame.value.id > id0)
+        assertTrue(controller.frame.value.agentVisuals.all { it.progress >= 1f })
 
         controller.dispose()
     }
@@ -39,7 +43,7 @@ class SimulationControllerTest {
         val controller = SimulationController(
             initialSeed = 2L,
             scope = this,
-            baseDelayMs = 100L,
+            baseDelayMs = 200L,
             initialSpeed = 1,
         )
         controller.setSpeed(1)
@@ -51,14 +55,19 @@ class SimulationControllerTest {
 
         controller.pause()
         assertFalse(controller.isPlaying.value)
-        val frozen = controller.frame.value
+        // Let any in-flight frame settle
+        advanceTimeBy(500)
+        runCurrent()
+        val frozenHour = controller.frame.value.snapshot.hour
+        val frozenDay = controller.frame.value.snapshot.day
+        val frozenId = controller.frame.value.id
 
         advanceTimeBy(5_000)
         runCurrent()
 
-        assertEquals(frozen.id, controller.frame.value.id)
-        assertEquals(frozen.snapshot.hour, controller.frame.value.snapshot.hour)
-        assertEquals(frozen.snapshot.day, controller.frame.value.snapshot.day)
+        assertEquals(frozenHour, controller.frame.value.snapshot.hour)
+        assertEquals(frozenDay, controller.frame.value.snapshot.day)
+        assertEquals(frozenId, controller.frame.value.id)
 
         controller.dispose()
     }
@@ -71,7 +80,9 @@ class SimulationControllerTest {
             baseDelayMs = 100L,
             initialSpeed = 1,
         )
-        repeat(8) { controller.stepOnce() }
+        controller.stepOnce()
+        advanceTimeBy(SimulationController.STEP_ONCE_ANIM_MS + 50)
+        runCurrent()
         assertTrue(
             controller.frame.value.snapshot.day > 0 ||
                 controller.frame.value.snapshot.hour > 0,
@@ -101,32 +112,26 @@ class SimulationControllerTest {
         val controller = SimulationController(
             initialSeed = 0L,
             scope = this,
-            baseDelayMs = 20L,
+            baseDelayMs = 100L,
             initialSpeed = 10,
         )
         val start = controller.frame.value.snapshot
         controller.play()
 
-        // ~30s wall at 5×/280ms is many hours; here we advance virtual time generously.
-        advanceTimeBy(10_000)
+        advanceTimeBy(30_000)
         runCurrent()
 
         val after = controller.frame.value.snapshot
-        assertTrue(after.day > start.day || after.hour != start.hour || controller.frame.value.id > 0)
-        assertTrue(controller.frame.value.id >= 1)
-
-        // Over enough steps, AI usually leaves camp or tills (not guaranteed every seed,
-        // but seed 0 + many hours is very likely to show activity).
-        val posChanged = after.agents.zip(start.agents).any { (a, b) -> a.x != b.x || a.y != b.y }
-        val landChanged = after.tiles != start.tiles
         val timeMoved = after.day != start.day || after.hour != start.hour
         assertTrue(timeMoved, "time must advance while playing")
-        // Living sim: either agents moved or land state/pending changed for typical seeds
+        assertTrue(controller.frame.value.id >= 1)
+
+        val posChanged = after.agents.zip(start.agents).any { (a, b) -> a.x != b.x || a.y != b.y }
+        val landChanged = after.tiles != start.tiles
         assertTrue(
             posChanged || landChanged || after.totalPendingHarvest() > 0 ||
                 (after.landStateCounts()[TileState.FARM] ?: 0) > 0,
-            "expected visible world activity (agents/land) after play; " +
-                "posChanged=$posChanged landChanged=$landChanged",
+            "expected visible world activity after play",
         )
 
         controller.pause()
@@ -137,6 +142,8 @@ class SimulationControllerTest {
     fun snapshotMirror_matchesFrame() = runTest {
         val controller = SimulationController(scope = this, initialSpeed = 1)
         controller.stepOnce()
+        advanceTimeBy(SimulationController.STEP_ONCE_ANIM_MS + 50)
+        runCurrent()
         assertEquals(controller.frame.value.snapshot, controller.snapshot.value)
         assertNotEquals(0L, controller.frame.value.id)
         controller.dispose()
@@ -146,7 +153,11 @@ class SimulationControllerTest {
     fun reset_sameSeed_reproducesAfterSteps() = runTest {
         val seed = 42L
         val a = SimulationController(initialSeed = seed, scope = this, initialSpeed = 1)
-        repeat(12) { a.stepOnce() }
+        repeat(12) {
+            a.stepOnce()
+            advanceTimeBy(SimulationController.STEP_ONCE_ANIM_MS + 20)
+            runCurrent()
+        }
         val mid = a.frame.value.snapshot
 
         a.reset(seed)
@@ -154,7 +165,11 @@ class SimulationControllerTest {
         assertEquals(0, a.frame.value.snapshot.hour)
         assertEquals(seed, a.seed.value)
 
-        repeat(12) { a.stepOnce() }
+        repeat(12) {
+            a.stepOnce()
+            advanceTimeBy(SimulationController.STEP_ONCE_ANIM_MS + 20)
+            runCurrent()
+        }
         assertEquals(mid, a.frame.value.snapshot)
 
         a.dispose()
@@ -162,13 +177,47 @@ class SimulationControllerTest {
 
     @Test
     fun higherSpeed_hasShorterDelay() = runTest {
-        val c = SimulationController(scope = this, baseDelayMs = 1000L, initialSpeed = 1)
+        val c = SimulationController(scope = this, baseDelayMs = 1800L, initialSpeed = 1)
         c.setSpeed(1)
         val d1 = c.delayMsForCurrentSpeed()
         c.setSpeed(10)
         val d10 = c.delayMsForCurrentSpeed()
         assertTrue(d10 < d1)
-        assertEquals(100L, d10) // 1000/10
+        assertEquals(180L, d10)
+        c.dispose()
+    }
+
+    @Test
+    fun animatedStep_progressGoesFromZeroToOne() = runTest {
+        val c = SimulationController(
+            initialSeed = 1L,
+            scope = this,
+            baseDelayMs = 1000L,
+            initialSpeed = 1,
+        )
+        c.stepOnce()
+        runCurrent()
+        // Suspended on first frame delay; initial publish is progress = 0
+        assertTrue(c.frame.value.agentVisuals.isNotEmpty())
+        assertTrue(
+            c.frame.value.agentVisuals.all { it.progress == 0f },
+            "expected start-of-anim progress 0, got ${c.frame.value.agentVisuals.map { it.progress }}",
+        )
+
+        advanceTimeBy(SimulationController.STEP_ONCE_ANIM_MS / 2)
+        runCurrent()
+        val mid = c.frame.value.agentVisuals.map { it.progress }
+        assertTrue(
+            mid.any { it in 0.2f..0.8f },
+            "expected mid-anim progress, got $mid",
+        )
+
+        advanceTimeBy(SimulationController.STEP_ONCE_ANIM_MS)
+        runCurrent()
+        assertTrue(
+            c.frame.value.agentVisuals.all { it.progress >= 1f - 1e-3f },
+            "expected settled progress 1, got ${c.frame.value.agentVisuals.map { it.progress }}",
+        )
         c.dispose()
     }
 }

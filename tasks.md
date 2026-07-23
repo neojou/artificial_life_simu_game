@@ -441,6 +441,26 @@ Minimal StatsRecorder fields if missing. Stop when DoD is met.
   - [x] Play 角色隨格移動
   - [x] desktopTest + wasm compile
 
+## Vis-B — 無縫棋盤 + 平滑移動補間
+
+- [x] **狀態**：done（2026-07-24）  
+- **依賴**：Vis-A  
+- **目標**：
+  1. 相鄰土地 **無空白間隙**（seamless grid），更像 RimWorld 連續地形。  
+  2. 速度 1× 時可看到人物 **慢慢移到下一格**，而非每小時閃現。  
+- **設計決策**（與使用者確認）：
+  - 模擬仍 1 tick = 1 小時；**不**細化 sim tick。  
+  - 顯示層 `AgentVisual` + Controller 以牆鐘時間 lerp（smoothstep）。  
+  - `DEFAULT_BASE_DELAY_MS = 1800`（1× ≈1.5–2s/格）；預設速度 2×；單步 ~450ms。  
+- **範圍**：`BoardView` gap=0 + 連續座標 pawn；`AgentVisual`；`SimulationController.runAnimatedStep`；單元測試。  
+- **非範圍**：8 向 walk sprite sheet、子小時邏輯 tick、物理碰撞。  
+- **DoD**：
+  - [x] 棋盤格間無 spacer / spacedBy>0
+  - [x] 每小時 step 後 progress 0→1 補間；結束 snap 對齊邏輯格
+  - [x] `AgentVisualTest` + `SimulationControllerTest` 綠
+  - [x] desktop + wasm compile；desktopTest 全綠
+  - [x] Architecture / GDD / AGENTS / tasks 已記 Vis-B
+
 ## M5-T1 — 日夜色調（2D 已取消）
 
 - [x] **狀態**：cancelled（2026-07-24）— 2D 固定淺色背景，晝夜僅 HUD 顯示；全畫面光線留待未來 3D  
@@ -626,3 +646,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-24 | M4-T2 完成：ControlsView + Seed 輸入；下一張 M4-T3 |
 | 2026-07-24 | M4-T3 完成：StatsRecorder + StatsPanel + 棋盤 hover；M4 結束；下一張 M5-T2 |
 | 2026-07-24 | Vis-A：正俯視 tile+pawn 資產與 BoardView 重寫；GDD 視角改 RimWorld 式 2D |
+| 2026-07-24 | Vis-B：seamless 棋盤 + AgentVisual 小時補間移動；sim 仍 stepHour |

@@ -1,6 +1,8 @@
-# World drawable assets (Vis-A)
+# World drawable assets (Vis-A / Vis-B)
 
 Top-down RimWorld-style soft watercolor tiles and chibi pawns.
+Vis-B: tiles are drawn **seamless** (gap=0); pawn placement uses continuous
+`AgentVisual.displayX/Y` interpolation between hourly cells (no extra sprites).
 
 | File | Use |
 |------|-----|

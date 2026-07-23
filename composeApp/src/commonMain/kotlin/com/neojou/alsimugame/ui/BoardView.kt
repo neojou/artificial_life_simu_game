@@ -2,7 +2,6 @@ package com.neojou.alsimugame.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,7 +25,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
@@ -44,11 +47,10 @@ import com.neojou.alsimugame.sim.model.TileState
 import com.neojou.alsimugame.ui.theme.rememberAppFontFamily
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import kotlin.math.roundToInt
 
 /** Soft paper-like board surround. */
 private val BoardMatte = Color(0xFFF3EDE3)
-private val CellGapColor = Color(0xFFE8E0D4)
-private val HoverBorder = Color(0xFF5D8AA8)
 
 /** Hover target for board tooltips (GDD §6.3). */
 data class BoardHoverInfo(
@@ -58,7 +60,7 @@ data class BoardHoverInfo(
 )
 
 /**
- * Top-down RimWorld-style board: painted tiles + chibi pawn sprites.
+ * Top-down RimWorld-style board: seamless tiles + smoothly interpolated pawns.
  */
 @Composable
 fun BoardView(
@@ -66,6 +68,7 @@ fun BoardView(
     modifier: Modifier = Modifier,
     gridSize: Int = SimConfig.GRID_SIZE,
     frameId: Long = 0L,
+    agentVisuals: List<AgentVisual> = emptyList(),
     onHover: (BoardHoverInfo?) -> Unit = {},
 ) {
     val appFont = rememberAppFontFamily()
@@ -74,6 +77,18 @@ fun BoardView(
     }
     val agentsByPos = remember(frameId, snapshot.agents) {
         snapshot.agents.groupBy { it.x to it.y }
+    }
+    // Prefer continuous visuals when provided; else snap to logical cells.
+    val visuals = if (agentVisuals.isNotEmpty()) {
+        agentVisuals
+    } else {
+        val slots = mutableMapOf<Pair<Int, Int>, Int>()
+        snapshot.agents.map { a ->
+            val key = a.x to a.y
+            val slot = slots[key] ?: 0
+            slots[key] = slot + 1
+            AgentVisual.atRest(a, slot)
+        }
     }
 
     Column(
@@ -96,41 +111,79 @@ fun BoardView(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .background(CellGapColor, RoundedCornerShape(8.dp))
-                .padding(3.dp),
+                .clip(RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            val gap = 2.dp
             val side = min(maxWidth, maxHeight) * 0.99f
-            Column(
-                modifier = Modifier.size(side),
-                verticalArrangement = Arrangement.spacedBy(gap),
-            ) {
-                for (y in 0 until gridSize) {
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(gap),
-                    ) {
-                        for (x in 0 until gridSize) {
-                            val isCamp = x == SimConfig.CAMP_X && y == SimConfig.CAMP_Y
-                            val tile = tileByPos[x to y]
-                            val agents = agentsByPos[x to y].orEmpty()
-                            BoardCell(
-                                x = x,
-                                y = y,
-                                isCamp = isCamp,
-                                tile = tile,
-                                agents = agents,
-                                campFood = snapshot.campFood,
-                                onHover = onHover,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight(),
-                            )
+            val cell: Dp = side / gridSize
+            val density = LocalDensity.current
+
+            Box(modifier = Modifier.size(side)) {
+                // --- Seamless tile grid (gap = 0) ---
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    for (y in 0 until gridSize) {
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(0.dp),
+                        ) {
+                            for (x in 0 until gridSize) {
+                                val isCamp = x == SimConfig.CAMP_X && y == SimConfig.CAMP_Y
+                                val tile = tileByPos[x to y]
+                                val agentsHere = agentsByPos[x to y].orEmpty()
+                                TileOnlyCell(
+                                    x = x,
+                                    y = y,
+                                    isCamp = isCamp,
+                                    tile = tile,
+                                    agents = agentsHere,
+                                    campFood = snapshot.campFood,
+                                    onHover = onHover,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
+                                )
+                            }
                         }
                     }
+                }
+
+                // --- Pawns on continuous coordinates (smooth walk) ---
+                visuals.forEach { visual ->
+                    val alpha = if (visual.mode == AgentMode.DEAD) 0.4f else 1f
+                    val pawnSize = cell * 0.72f
+                    // Center of cell (displayX, displayY) in grid units → pixel offset
+                    val offsetX = with(density) {
+                        (cell * visual.displayX + (cell - pawnSize) / 2f).toPx()
+                    }
+                    val offsetY = with(density) {
+                        (cell * visual.displayY + (cell - pawnSize) / 2f).toPx()
+                    }
+                    // Snapshot for drawable selection
+                    val pseudo = AgentSnapshot(
+                        id = visual.id,
+                        gender = visual.gender,
+                        x = visual.toX.roundToInt(),
+                        y = visual.toY.roundToInt(),
+                        stamina = 0,
+                        carriedFood = visual.carriedFood,
+                        ageDays = 0,
+                        mode = visual.mode,
+                        returnHome = false,
+                    )
+                    Image(
+                        painter = painterResource(WorldAssets.pawnFor(pseudo)),
+                        contentDescription = visual.id,
+                        contentScale = ContentScale.Fit,
+                        alpha = alpha,
+                        modifier = Modifier
+                            .size(pawnSize)
+                            .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) },
+                    )
                 }
             }
         }
@@ -140,7 +193,7 @@ fun BoardView(
 }
 
 @Composable
-private fun BoardCell(
+private fun TileOnlyCell(
     x: Int,
     y: Int,
     isCamp: Boolean,
@@ -158,7 +211,6 @@ private fun BoardCell(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(4.dp))
             .pointerInput(hoverSummary) {
                 awaitPointerEventScope {
                     while (true) {
@@ -180,8 +232,6 @@ private fun BoardCell(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )
-
-        // Optional tiny label for farm pending
         if (tile != null && tile.state == TileState.FARM && tile.pendingHarvest > 0) {
             Text(
                 text = "×${tile.pendingHarvest}",
@@ -195,30 +245,6 @@ private fun BoardCell(
                     .background(Color.White.copy(alpha = 0.65f), RoundedCornerShape(3.dp))
                     .padding(horizontal = 3.dp, vertical = 1.dp),
             )
-        }
-
-        // Pawns stacked near cell center
-        if (agents.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy((-4).dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                agents.forEach { agent ->
-                    val alpha = if (agent.mode == AgentMode.DEAD) 0.4f else 1f
-                    Image(
-                        painter = painterResource(WorldAssets.pawnFor(agent)),
-                        contentDescription = agent.id,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxHeight(0.75f)
-                            .fillMaxWidth(if (agents.size > 1) 0.42f else 0.55f),
-                        alpha = alpha,
-                    )
-                }
-            }
         }
     }
 }

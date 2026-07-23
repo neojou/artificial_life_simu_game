@@ -72,10 +72,13 @@ composeApp/src/
       SimRng.kt                     # Random(seed) 包裝
     ui/
       SimScreen.kt
-      BoardView.kt                  # 正俯視 tile + pawn（RimWorld 感）
+      BoardView.kt                  # 正俯視 seamless tile + 連續座標 pawn（RimWorld 感）
+      AgentVisual.kt                # 顯示層姿態（from/to + progress 補間）
+      SimulationController.kt       # play/pause/speed；邏輯 stepHour + 視覺 lerp
       HudView.kt
       ControlsView.kt
       StatsPanel.kt
+      WorldAssets.kt                # tile/pawn DrawableResource 對照
       theme/                        # AppTheme 字型等；2D 固定淺色（無日夜全畫面 tint）
     composeResources/
       drawable/                     # tile_* / pawn_* PNG
@@ -84,8 +87,9 @@ composeApp/src/
       MyLog.kt
       SystemSettings.kt
 
-  commonTest/kotlin/com/neojou/alsimugame/sim/
-    ... 對應單元測試
+  commonTest/kotlin/com/neojou/alsimugame/
+    sim/ ... 對應單元測試
+    ui/  SimulationControllerTest、AgentVisualTest
 
   desktopMain/.../Main.kt
   wasmJsMain/.../WasmMain.kt
@@ -229,24 +233,40 @@ EMPTY --(ageDays >= 12 at day boundary)--> GRASS (ageDays=0)
 ## 7. UI 訂閱模型
 
 ```kotlin
-// 概念 API
+// 概念 API（Vis-B）
 class SimulationController(
     initialSeed: Long,
 ) {
-    val snapshot: StateFlow<SimSnapshot>   // 或 Compose State
+    val frame: StateFlow<UiFrame>          // snapshot + agentVisuals
+    val snapshot: StateFlow<SimSnapshot>   // 鏡像，兼容既有 UI
     fun play()
     fun pause()
     fun setSpeed(mult: Int)                // 1,2,5,10
     fun reset(seed: Long)
-    fun stepOnce()                         // 除錯用
+    fun stepOnce()                         // 單步 + 短動畫
 }
+
+data class UiFrame(
+    val id: Long,
+    val snapshot: SimSnapshot,
+    val agentVisuals: List<AgentVisual>,
+)
 ```
 
-- Controller 內 coroutine：`while (playing) { engine.stepHour(); delay(baseMs / speed) }`
-- **UI 只讀 `SimSnapshot`**，禁止直接 mutate `Tile` / `Agent`。
-- **正俯視 2D** 5×5 全圖；**無相機平移縮放**（GDD §6.1）。
-- 土地：`painterResource` 依 `TileState`（+ pending 可換 ripe tile）。
-- 角色：依 gender / mode / carried 選 pawn sprite，疊在格心。
+**邏輯 vs 顯示（Vis-B 關鍵邊界）**
+
+| 層 | 刻度 | 職責 |
+|----|------|------|
+| `SimulationEngine` | 1 tick = 1 小時 | `stepHour` 離散狀態；不改為更細 sim tick |
+| `SimulationController` | 牆鐘 ms / 幀 | 每小時 `stepHour` 後，將 agent 格座標 lerp 至下一格 |
+| `AgentVisual` | `progress` 0→1 | smoothstep 補間；`displayX/Y` 連續格單位 |
+| `BoardView` | 像素 | seamless 地磚（gap=0）；pawn 用 `offset` 畫在連續座標 |
+
+- Controller coroutine：`while (playing) { stepHour(); 以 ~16ms 幀更新 progress 直到 baseMs/speed }`
+- **1× 預設 `DEFAULT_BASE_DELAY_MS = 1800`**（約 1.5–2 秒走完一格）；預設速度 **2×**。
+- **UI 只讀 snapshot / AgentVisual**，禁止直接 mutate `Tile` / `Agent`。
+- **正俯視 2D** 5×5 全圖、地磚銜接無間隙；**無相機平移縮放**（GDD §6.1）。
+- 土地：`painterResource` 依 `TileState`；角色：依 gender / mode / carried 選 pawn，疊在連續座標。
 - 日夜僅 HUD 標示；全畫面光線留給 3D。
 
 ---

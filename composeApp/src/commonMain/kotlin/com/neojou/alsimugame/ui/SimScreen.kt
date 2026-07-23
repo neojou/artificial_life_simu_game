@@ -94,6 +94,7 @@ fun SimScreen(
             BoardView(
                 snapshot = snapshot,
                 frameId = frame.id,
+                agentVisuals = frame.agentVisuals,
                 onHover = { hoverInfo = it },
                 modifier = Modifier
                     .weight(1f)
