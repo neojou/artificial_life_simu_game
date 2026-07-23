@@ -1,5 +1,7 @@
 package com.neojou.alsimugame.sim.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Lifecycle state of a peripheral land tile.
  *
@@ -8,6 +10,7 @@ package com.neojou.alsimugame.sim.model
  * - [FARM] after [SimConfig.LAND_STATE_DAYS] → [EMPTY]
  * - [EMPTY] after [SimConfig.LAND_STATE_DAYS] → [GRASS]
  */
+@Serializable
 enum class TileState {
     /** Wild grassland; can be tilled into farmland. */
     GRASS,

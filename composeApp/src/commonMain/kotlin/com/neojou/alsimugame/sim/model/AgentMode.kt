@@ -1,11 +1,14 @@
 package com.neojou.alsimugame.sim.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * High-level behaviour mode for a villager agent (GDD §5).
  *
  * Decision logic will live in the AI layer (AgentBrain); this enum is the
  * shared vocabulary for simulation and UI.
  */
+@Serializable
 enum class AgentMode {
     /** At camp, idle or sleeping. */
     RESTING,

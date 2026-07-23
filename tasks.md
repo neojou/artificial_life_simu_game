@@ -10,15 +10,15 @@
 
 | 欄位 | 值 |
 |------|-----|
-| 當前 Milestone | **M1 模擬核心** |
-| 下一張待辦 | **M1-T4** |
+| 當前 Milestone | **M2 村民 AI** |
+| 下一張待辦 | **M2-T1** |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
 ### Milestone 進度
 
 - [x] **M0** 專案憲章（文件）
-- [ ] **M1** 模擬核心
+- [x] **M1** 模擬核心
 - [ ] **M2** 村民 AI
 - [ ] **M3** 最小可視原型
 - [ ] **M4** HUD 與控制
@@ -160,7 +160,7 @@ No full AI or UI. Stop when DoD is met.
 
 ## M1-T4 — SimulationEngine + Seeded RNG + 狀態快照骨架
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-23）  
 - **依賴**：M1-T3  
 - **用量**：~10%  
 - **目標**：可 headless 推進的引擎；同 seed 可重現；`SimSnapshot` 骨架。  
@@ -175,9 +175,9 @@ No full AI or UI. Stop when DoD is met.
 - **非範圍**：AI 優先序、Compose
 
 **DoD**：
-- [ ] Seed 重現測試通過
-- [ ] `runDays(12)` 不崩潰
-- [ ] compile + tests 綠
+- [x] Seed 重現測試通過
+- [x] `runDays(12)` 不崩潰
+- [x] compile + tests 綠
 
 **Grok Prompt**：
 ```
@@ -615,3 +615,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-23 | M1-T1 完成：sim 領域模型 + Grid + unit tests；下一張 M1-T2 |
 | 2026-07-23 | M1-T2 完成：Clock + LandSystem + slim SimulationEngine；下一張 M1-T3 |
 | 2026-07-23 | M1-T3 完成：Economy API + campFood on engine；下一張 M1-T4 |
+| 2026-07-23 | M1-T4 完成：SimRng + snapshot + 雙 agent 初始世界；M1 結束；下一張 M2-T1 |
