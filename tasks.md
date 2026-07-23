@@ -11,7 +11,7 @@
 | 欄位 | 值 |
 |------|-----|
 | 當前 Milestone | **M1 模擬核心** |
-| 下一張待辦 | **M1-T2** |
+| 下一張待辦 | **M1-T3** |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
@@ -103,7 +103,7 @@ Stop when DoD is met.
 
 ## M1-T2 — 時鐘與土地循環 + 每日生產
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-23）  
 - **依賴**：M1-T1  
 - **用量**：~10%  
 - **目標**：`Clock` + 日界線土地 aging / 狀態轉換 + 新日 FARM `pendingHarvest++`。  
@@ -115,10 +115,10 @@ Stop when DoD is met.
 - **非範圍**：Agent 移動/AI、糧食補給、UI
 
 **DoD**：
-- [ ] 測試：跑 12 日 FARM 變 EMPTY；再 12 日 EMPTY 變 GRASS
-- [ ] 測試：連續 3 個新日 FARM pending 累加為 3
-- [ ] 測試：hour 0..5 循環與 isNight
-- [ ] Desktop compile + tests 綠
+- [x] 測試：跑 12 日 FARM 變 EMPTY；再 12 日 EMPTY 變 GRASS
+- [x] 測試：連續 3 個新日 FARM pending 累加為 3
+- [x] 測試：hour 0..5 循環與 isNight
+- [x] Desktop compile + tests 綠
 
 **Grok Prompt**：
 ```
@@ -613,3 +613,4 @@ Do not add features. Stop when fixed and tests pass.
 |------|------|
 | 2026-07-23 | 初版任務板；M0-T1 完成；下一張 M1-T1 |
 | 2026-07-23 | M1-T1 完成：sim 領域模型 + Grid + unit tests；下一張 M1-T2 |
+| 2026-07-23 | M1-T2 完成：Clock + LandSystem + slim SimulationEngine；下一張 M1-T3 |
