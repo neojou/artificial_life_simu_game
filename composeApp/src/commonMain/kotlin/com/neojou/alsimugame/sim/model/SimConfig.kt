@@ -37,8 +37,12 @@ object SimConfig {
     /** Starting global food stock at the camp. */
     const val INITIAL_CAMP_FOOD: Int = 10
 
-    /** Agent lifespan in days (fixed for v0.1). */
-    const val LIFESPAN_DAYS: Int = 12
+    /**
+     * Agent lifespan in days (fixed for v0.1).
+     * 5 years × 12 days/year (compressed calendar) = 60 days,
+     * so land FARM/EMPTY cycles (12 days each) are observable within one life.
+     */
+    const val LIFESPAN_DAYS: Int = 60
 
     /**
      * Hours per in-game day.

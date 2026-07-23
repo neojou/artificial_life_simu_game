@@ -21,7 +21,7 @@ class SimConfigTest {
         assertEquals(1, SimConfig.HARVEST_HOURS)
         assertEquals(12, SimConfig.LAND_STATE_DAYS)
         assertEquals(10, SimConfig.INITIAL_CAMP_FOOD)
-        assertEquals(12, SimConfig.LIFESPAN_DAYS)
+        assertEquals(60, SimConfig.LIFESPAN_DAYS)
         assertEquals(6, SimConfig.HOURS_PER_DAY)
     }
 

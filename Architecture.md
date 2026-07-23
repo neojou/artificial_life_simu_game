@@ -148,7 +148,7 @@ data class Agent(
 | HARVEST_HOURS | 1（無體力） |
 | LAND_STATE_DAYS | 12 |
 | INITIAL_CAMP_FOOD | 10 |
-| LIFESPAN_DAYS | 12 |
+| LIFESPAN_DAYS | 60（5 年 × 12 日/年） |
 | HOURS_PER_DAY | 6（0–2 白天，3–5 晚上） |
 
 改參數必須同步 `game_design.md` §11 與測試。
@@ -271,7 +271,7 @@ M3 可用色塊 + 文字；M5 再換 sprite / tint。
 | 層級 | 工具 | 覆蓋 |
 |------|------|------|
 | Domain | `commonTest` + kotlin.test | 土地轉換、生產、補給、成本、AI 優先序、seed 重現 |
-| Headless 平衡 | 測試或小 main | 多 seed 跑 12 日存活率（可選） |
+| Headless 平衡 | 測試或小 main | 多 seed 跑一壽命週期（60 日）存活率（可選） |
 | UI | 手動 Desktop | 棋盤、HUD、速度 |
 | Wasm | 手動 browser | 冒煙 |
 

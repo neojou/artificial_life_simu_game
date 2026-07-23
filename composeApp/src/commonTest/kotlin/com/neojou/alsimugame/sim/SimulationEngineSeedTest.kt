@@ -83,13 +83,13 @@ class SimulationEngineSeedTest {
     }
 
     @Test
-    fun runDays12_withAiDisabled_agesAgentsToLifespanDeath() {
+    fun runDaysThroughLifespan_withAiDisabled_agesAgentsToDeath() {
         val engine = SimulationEngine.create(7L).also { it.aiEnabled = false }
-        engine.runDays(12)
+        engine.runDays(SimConfig.LIFESPAN_DAYS)
         val snap = engine.snapshot()
-        assertEquals(12, snap.day)
+        assertEquals(SimConfig.LIFESPAN_DAYS, snap.day)
         assertEquals(0, snap.hour)
-        // Lifespan: ageDays reaches 12 on the 12th day boundary → DEAD
+        // Lifespan: ageDays reaches LIFESPAN_DAYS on that day boundary → DEAD
         for (agent in snap.agents) {
             assertEquals(SimConfig.LIFESPAN_DAYS, agent.ageDays)
             assertEquals(AgentMode.DEAD, agent.mode)

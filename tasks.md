@@ -11,7 +11,7 @@
 | 欄位 | 值 |
 |------|-----|
 | 當前 Milestone | **M3 最小可視原型** |
-| 下一張待辦 | **M3-T1** |
+| 下一張待辦 | **M3-T2** |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
@@ -250,7 +250,7 @@ Unit + light integration tests. No UI. Stop when DoD is met.
 - [x] **狀態**：done（2026-07-23）  
 - **依賴**：M2-T2  
 - **用量**：~10%  
-- **目標**：男+女兩 agent；壽命 12 日；死亡規則可測。  
+- **目標**：男+女兩 agent；壽命 5 年（60 日）；死亡規則可測。  
 - **範圍**：
   - 初始兩 agent（MALE/FEMALE），允許同格
   - 日界線 `ageDays++`；≥ LIFESPAN → DEAD
@@ -258,6 +258,7 @@ Unit + light integration tests. No UI. Stop when DoD is met.
   - 人口 0 時 engine 標記 `isGameOver`
   - 測試：壽命、雙人同在、game over
 - **非範圍**：繁殖、UI
+- **參數更新（2026-07-23）**：`LIFESPAN_DAYS` 由 12（1 年）改為 **60（5 年）**，土地仍 12 日一轉換。
 
 **DoD**：
 - [x] 雙 agent 初始測試
@@ -268,7 +269,7 @@ Unit + light integration tests. No UI. Stop when DoD is met.
 ```
 Implement tasks.md M2-T3 only.
 Follow GDD lifespan/death notes and Architecture.md.
-Two agents, lifespan 12 days, death + isGameOver. Tests required.
+Two agents, lifespan 60 days (5 years), death + isGameOver. Tests required.
 No UI. Stop when DoD is met.
 ```
 
@@ -278,7 +279,7 @@ No UI. Stop when DoD is met.
 
 ## M3-T1 — SimulationController（Compose 狀態橋）
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-23）  
 - **依賴**：M2-T3  
 - **用量**：~10%  
 - **目標**：UI 可 play/pause/speed/reset 驅動 `stepHour`。  
@@ -290,9 +291,9 @@ No UI. Stop when DoD is met.
 - **非範圍**：精美 HUD、hover、美術
 
 **DoD**：
-- [ ] Desktop compile
-- [ ] `ALSimuGame`/`App` 能顯示 day/hour 並隨 play 變化（手動驗）
-- [ ] 暫停後時間不動
+- [x] Desktop compile
+- [x] `ALSimuGame`/`App` 能顯示 day/hour 並隨 play 變化（手動驗）
+- [x] 暫停後時間不動
 
 **Grok Prompt**：
 ```
@@ -617,3 +618,5 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-23 | M1-T3 完成：Economy API + campFood on engine；下一張 M1-T4 |
 | 2026-07-23 | M1-T4 完成：SimRng + snapshot + 雙 agent 初始世界；M1 結束；下一張 M2-T1 |
 | 2026-07-23 | M2 整包完成（T1 Pathfinder/move、T2 AgentBrain、T3 壽命/死亡）；下一張 M3-T1 |
+| 2026-07-23 | M3-T1 完成：SimulationController + 文字 readout；下一張 M3-T2 |
+| 2026-07-23 | 參數：村民壽命 1 年→5 年（LIFESPAN_DAYS 12→60）；土地 12 日不變 |
