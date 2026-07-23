@@ -24,9 +24,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.min
+import androidx.compose.ui.unit.sp
 import com.neojou.alsimugame.sim.model.AgentMode
+import com.neojou.alsimugame.ui.theme.rememberAppFontFamily
 import com.neojou.alsimugame.sim.model.AgentSnapshot
 import com.neojou.alsimugame.sim.model.Gender
 import com.neojou.alsimugame.sim.model.SimConfig
@@ -49,7 +50,7 @@ object BoardColors {
 }
 
 /**
- * Fixed top-down 3×3 board driven only by [SimSnapshot].
+ * Fixed top-down board ([SimConfig.GRID_SIZE]²) driven only by [SimSnapshot].
  *
  * Sizing: the grid is a square that fits inside the **smaller** of the parent's
  * max width and max height (via [BoxWithConstraints]), so all 9 cells stay visible
@@ -61,6 +62,7 @@ fun BoardView(
     modifier: Modifier = Modifier,
     gridSize: Int = SimConfig.GRID_SIZE,
 ) {
+    val appFont = rememberAppFontFamily()
     val tileByPos = remember(snapshot.tiles) {
         snapshot.tiles.associateBy { it.x to it.y }
     }
@@ -74,8 +76,9 @@ fun BoardView(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "地圖 3×3",
+            text = "地圖 ${gridSize}×${gridSize}",
             style = MaterialTheme.typography.titleSmall,
+            fontFamily = appFont,
         )
 
         // Grid area: take remaining height, center a square that fits both axes.
@@ -132,6 +135,7 @@ private fun BoardCell(
     agents: List<AgentSnapshot>,
     modifier: Modifier = Modifier,
 ) {
+    val appFont = rememberAppFontFamily()
     val bg = when {
         isCamp -> BoardColors.Camp
         tile == null -> BoardColors.Empty
@@ -159,6 +163,7 @@ private fun BoardCell(
             color = labelColor,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
+            fontFamily = appFont,
             modifier = Modifier.align(Alignment.TopStart),
         )
 
@@ -168,6 +173,7 @@ private fun BoardCell(
                 color = labelColor,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
+                fontFamily = appFont,
                 modifier = Modifier.align(Alignment.TopEnd),
             )
         }
@@ -181,7 +187,7 @@ private fun BoardCell(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 agents.forEach { agent ->
-                    AgentMarker(agent = agent)
+                    AgentMarker(agent = agent, fontFamily = appFont)
                 }
             }
         }
@@ -190,13 +196,17 @@ private fun BoardCell(
             text = "$x,$y",
             color = labelColor.copy(alpha = 0.5f),
             fontSize = 9.sp,
+            fontFamily = appFont,
             modifier = Modifier.align(Alignment.BottomEnd),
         )
     }
 }
 
 @Composable
-private fun AgentMarker(agent: AgentSnapshot) {
+private fun AgentMarker(
+    agent: AgentSnapshot,
+    fontFamily: androidx.compose.ui.text.font.FontFamily,
+) {
     val alive = agent.mode != AgentMode.DEAD
     val color = when {
         !alive -> BoardColors.DeadMarker
@@ -220,6 +230,7 @@ private fun AgentMarker(agent: AgentSnapshot) {
             color = Color.White,
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
+            fontFamily = fontFamily,
             textAlign = TextAlign.Center,
         )
     }
@@ -227,22 +238,31 @@ private fun AgentMarker(agent: AgentSnapshot) {
 
 @Composable
 private fun BoardLegend() {
+    val appFont = rememberAppFontFamily()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
     ) {
-        LegendSwatch(BoardColors.Camp, "寨營")
-        LegendSwatch(BoardColors.Grass, "草地")
-        LegendSwatch(BoardColors.Farm, "田地")
-        LegendSwatch(BoardColors.Empty, "空地")
-        Text("M/F=村民", style = MaterialTheme.typography.labelSmall)
+        LegendSwatch(BoardColors.Camp, "寨營", appFont)
+        LegendSwatch(BoardColors.Grass, "草地", appFont)
+        LegendSwatch(BoardColors.Farm, "田地", appFont)
+        LegendSwatch(BoardColors.Empty, "空地", appFont)
+        Text(
+            "M/F=村民",
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = appFont,
+        )
     }
 }
 
 @Composable
-private fun LegendSwatch(color: Color, label: String) {
+private fun LegendSwatch(
+    color: Color,
+    label: String,
+    fontFamily: androidx.compose.ui.text.font.FontFamily,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -253,7 +273,11 @@ private fun LegendSwatch(color: Color, label: String) {
                 .background(color, RoundedCornerShape(2.dp))
                 .border(0.5.dp, BoardColors.CellBorder, RoundedCornerShape(2.dp)),
         )
-        Text(label, style = MaterialTheme.typography.labelSmall)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = fontFamily,
+        )
     }
 }
 

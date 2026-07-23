@@ -25,8 +25,8 @@ class SimulationEngineSeedTest {
         assertTrue(snap.isDay)
         assertFalse(snap.isNight)
         assertEquals(SimConfig.INITIAL_CAMP_FOOD, snap.campFood)
-        assertEquals(8, snap.tiles.size)
-        assertEquals(8, snap.landStateCounts()[TileState.GRASS])
+        assertEquals(24, snap.tiles.size)
+        assertEquals(24, snap.landStateCounts()[TileState.GRASS])
         assertEquals(0, snap.totalPendingHarvest())
 
         assertEquals(2, snap.agents.size)

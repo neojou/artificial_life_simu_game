@@ -81,26 +81,23 @@ class DeathAndPopulationTest {
     }
 
     @Test
-    fun forceNightReturn_preventsStrandedDeathOn3x3() {
+    fun forceNightReturn_reachesCampFromCorner_overMultipleSteps() {
         val engine = SimulationEngine.create(5L)
         val agent = engine.agents.first()
-        // Put only one agent in the field; remove the other to simplify
         engine.kill(engine.agents[1])
         agent.pos = GridPos(0, 0)
         agent.stamina = 0
         agent.mode = AgentMode.EXPLORING
-        // Step until night and through a night hour with AI on
-        while (engine.clock.day == 0 && engine.clock.hour < 3) {
+        // Enter night
+        while (engine.clock.isDay) {
             engine.stepHour()
         }
-        // One more step into night processing if needed
-        if (engine.clock.isDay) engine.stepHour()
-        engine.stepHour()
-        // Agent should have been force-moved home rather than left stranded
-        assertTrue(agent.isAtCamp || agent.mode == AgentMode.DEAD)
-        // On 3×3 with force return, prefer alive at camp:
-        if (agent.isAlive) {
-            assertTrue(agent.isAtCamp)
+        // Multi-step force return (corner is 2 Chebyshev steps on 5×5)
+        var guard = 0
+        while (!agent.isAtCamp && agent.isAlive && guard++ < 10) {
+            engine.stepHour()
         }
+        assertTrue(agent.isAlive, "should not die mid force-return")
+        assertTrue(agent.isAtCamp)
     }
 }

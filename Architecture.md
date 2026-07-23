@@ -57,10 +57,10 @@ composeApp/src/
         Tile.kt
         Agent.kt                    # pos, stamina, carriedFood, gender, ageDays, mode
         AgentMode.kt                # RESTING, EXPLORING, WORKING, RETURNING, ...
-        GridPos.kt                  # x,y 0..2；中心 (1,1) = 寨營
+        GridPos.kt                  # x,y 0..4；中心 (2,2) = 寨營
         SimConfig.kt                # GDD §11 參數常數
         SimSnapshot.kt              # UI 唯讀投影
-      Grid.kt                       # 3×3 tiles；寨營格特殊
+      Grid.kt                       # 5×5 tiles；寨營格特殊
       Clock.kt                      # day, hour 0..5；isDay / isNight
       Economy.kt                    # campFood、補給、生產
       path/
@@ -102,7 +102,7 @@ enum class TileState { GRASS, FARM, EMPTY }
 data class Tile(
     var state: TileState = TileState.GRASS,
     var ageDays: Int = 0,           // 進入當前狀態後累計日數
-    var pendingHarvest: Int = 0,    // 僅 FARM 有意義
+    var pendingHarvest: Int = 0,    // 僅 FARM 有意義；日產 capped at MAX_PENDING_HARVEST
 )
 
 enum class AgentMode {
@@ -132,8 +132,8 @@ data class Agent(
 
 **地圖約束**：
 
-- 座標 `(x, y)`，`0..2`；**寨營 = `(1, 1)`**，不可耕種、不可變成田地。
-- 外圍 8 格可為 GRASS / FARM / EMPTY。
+- 座標 `(x, y)`，`0..4`；**寨營 = `(2, 2)`**，不可耕種、不可變成田地。
+- 外圍 24 格可為 GRASS / FARM / EMPTY。
 - 初始：外圍全 GRASS；`campFood = 10`；兩 agent 在寨營，體力 10。
 
 **SimConfig（GDD §11，單一真相）**：
@@ -143,6 +143,7 @@ data class Agent(
 | MAX_STAMINA | 10 |
 | FOOD_TO_STAMINA | 3（1 糧 → +3 體力） |
 | FARM_YIELD_PER_DAY | 1 |
+| MAX_PENDING_HARVEST | 3（每格待收上限） |
 | MOVE_STAMINA / MOVE_HOURS | 1 / 1 |
 | TILL_EXTRA_STAMINA / TILL_HOURS | 1 / 1 |
 | HARVEST_HOURS | 1（無體力） |
@@ -150,6 +151,8 @@ data class Agent(
 | INITIAL_CAMP_FOOD | 10 |
 | LIFESPAN_DAYS | 60（5 年 × 12 日/年） |
 | HOURS_PER_DAY | 6（0–2 白天，3–5 晚上） |
+| GRID_SIZE | 5 |
+| CAMP_X / CAMP_Y | 2 / 2 |
 
 改參數必須同步 `game_design.md` §11 與測試。
 
@@ -168,7 +171,7 @@ stepHour():
        day += 1
        onNewDay()          // 土地 age、狀態轉換、agent ageDays、壽命檢查
   2. if hour == 0 (新一日開始):
-       每塊 FARM: pendingHarvest += FARM_YIELD_PER_DAY
+       每塊 FARM: pendingHarvest = min(pending + YIELD, MAX_PENDING_HARVEST)
        每位存活 agent 在寨營: deposit carriedFood; 用 campFood 補給體力
   3. 更新每位存活 Agent（AgentBrain + 移動/動作）
      - 夜間且不在寨營 → 最高優先 RETURNING
@@ -214,7 +217,7 @@ EMPTY --(ageDays >= 12 at day boundary)--> GRASS (ageDays=0)
    - 否則 → 繼續探索（偏好遠離中心或隨機相鄰外圍格，**不**空手立刻回營）  
 7. **RESTING** 夜間在寨營 → 建議 +2 體力/夜（GDD §4.2 次要恢復；實作時寫入 SimConfig）
 
-移動：8 方向；外圍 ↔ 寨營通常 1 步。`Pathfinder` 可用 BFS/貪婪；地圖僅 9 格。
+移動：8 方向；相鄰寨營 1 步、角落 2 步。`Pathfinder` 用 BFS；地圖 25 格。
 
 多 agent：允許同格；互不阻擋（v0.1）。
 
@@ -238,7 +241,7 @@ class SimulationController(
 
 - Controller 內 coroutine：`while (playing) { engine.stepHour(); delay(baseMs / speed) }`
 - **UI 只讀 `SimSnapshot`**，禁止直接 mutate `Tile` / `Agent`。
-- 固定 2.5D / 俯視 3×3 全圖；**無相機平移縮放**（GDD §6.1）。
+- 固定 2.5D / 俯視 5×5 全圖；**無相機平移縮放**（GDD §6.1）。
 
 M3 可用色塊 + 文字；M5 再換 sprite / tint。
 
@@ -306,6 +309,6 @@ M3 可用色塊 + 文字；M5 再換 sprite / tint。
 
 1. **純 commonMain 模擬** — 雙平台與可測性。  
 2. **`stepHour` 驅動** — 速度、重播、測試一致。  
-3. **Priority list AI** — 符合 3×3 規模，避免 BT 框架成本。  
+3. **Priority list AI** — 符合 5×5 規模，避免 BT 框架成本。  
 4. **Immutable Snapshot → UI** — Compose 單向資料流。  
 5. **色塊先於美術** — M3/M4 可玩，M5 再 polish。

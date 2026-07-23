@@ -13,36 +13,38 @@ import kotlin.test.assertTrue
 class GridTest {
 
     @Test
-    fun campIsAtCenter_1_1() {
+    fun campIsAtMapCenter() {
         val grid = Grid.createDefault()
-        assertEquals(GridPos(1, 1), grid.camp)
+        val expected = GridPos(SimConfig.CAMP_X, SimConfig.CAMP_Y)
+        assertEquals(expected, grid.camp)
         assertEquals(GridPos.CAMP, grid.camp)
-        assertTrue(grid.isCamp(GridPos(1, 1)))
+        assertTrue(grid.isCamp(expected))
         assertFalse(grid.isCamp(GridPos(0, 0)))
     }
 
     @Test
-    fun gridIs3x3_withNineCellsAndEightPeripheral() {
+    fun gridIs5x5_withTwentyFiveCellsAndTwentyFourPeripheral() {
         val grid = Grid.createDefault()
-        assertEquals(3, grid.size)
+        assertEquals(5, grid.size)
         assertEquals(SimConfig.GRID_SIZE, grid.size)
-        assertEquals(9, grid.allPositions().size)
-        assertEquals(8, grid.peripheralCount)
-        assertEquals(8, grid.peripheralPositions().size)
+        assertEquals(25, grid.allPositions().size)
+        assertEquals(24, grid.peripheralCount)
+        assertEquals(24, grid.peripheralPositions().size)
     }
 
     @Test
-    fun allCoordinatesInBounds_0_to_2() {
+    fun allCoordinatesInBounds_0_to_sizeMinusOne() {
         val grid = Grid.createDefault()
+        val max = SimConfig.GRID_SIZE - 1
         for (pos in grid.allPositions()) {
             assertTrue(pos.isInBounds(), "expected in-bounds: $pos")
             assertTrue(grid.isInBounds(pos))
-            assertTrue(pos.x in 0..2)
-            assertTrue(pos.y in 0..2)
+            assertTrue(pos.x in 0..max)
+            assertTrue(pos.y in 0..max)
         }
         assertFalse(GridPos(-1, 0).isInBounds())
-        assertFalse(GridPos(3, 1).isInBounds())
-        assertFalse(grid.isInBounds(GridPos(0, 3)))
+        assertFalse(GridPos(SimConfig.GRID_SIZE, 1).isInBounds())
+        assertFalse(grid.isInBounds(GridPos(0, SimConfig.GRID_SIZE)))
     }
 
     @Test
@@ -68,13 +70,13 @@ class GridTest {
             assertNotNull(grid.tileAt(pos))
             assertTrue(grid.isTillable(pos))
         }
-        assertEquals(8, count)
+        assertEquals(24, count)
     }
 
     @Test
     fun outOfBoundsTileAt_returnsNull() {
         val grid = Grid.createDefault()
         assertNull(grid.tileAt(GridPos(-1, 0)))
-        assertNull(grid.tileAt(GridPos(3, 3)))
+        assertNull(grid.tileAt(GridPos(SimConfig.GRID_SIZE, SimConfig.GRID_SIZE)))
     }
 }

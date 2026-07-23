@@ -621,3 +621,5 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-23 | M3-T1 完成：SimulationController + 文字 readout；下一張 M3-T2 |
 | 2026-07-23 | 參數：村民壽命 1 年→5 年（LIFESPAN_DAYS 12→60）；土地 12 日不變 |
 | 2026-07-23 | M3-T2 完成：BoardView 3×3 色塊 + M/F 標記；下一張 M3-T3 |
+| 2026-07-23 | 設計更新：地圖 3×3→5×5（營 2,2）；pending_harvest 上限 3 |
+| 2026-07-23 | Wasm 中文：內嵌 Noto Sans TC + AppTheme（Skiko 無系統 CJK 回退） |

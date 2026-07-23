@@ -3,6 +3,7 @@ package com.neojou.alsimugame.sim
 import com.neojou.alsimugame.sim.model.SimConfig
 import com.neojou.alsimugame.sim.model.Tile
 import com.neojou.alsimugame.sim.model.TileState
+import kotlin.math.min
 
 /**
  * Pure land rules: aging, state transitions, tilling, and daily farm yield.
@@ -46,12 +47,16 @@ object LandSystem {
     }
 
     /**
-     * At the start of a new day, each FARM tile accumulates yield into [Tile.pendingHarvest].
+     * At the start of a new day, each FARM tile accumulates yield into [Tile.pendingHarvest],
+     * capped at [SimConfig.MAX_PENDING_HARVEST].
      */
     fun applyDailyFarmYield(grid: Grid) {
         grid.forEachPeripheral { _, tile ->
             if (tile.state == TileState.FARM) {
-                tile.pendingHarvest += SimConfig.FARM_YIELD_PER_DAY
+                tile.pendingHarvest = min(
+                    tile.pendingHarvest + SimConfig.FARM_YIELD_PER_DAY,
+                    SimConfig.MAX_PENDING_HARVEST,
+                )
             }
         }
     }

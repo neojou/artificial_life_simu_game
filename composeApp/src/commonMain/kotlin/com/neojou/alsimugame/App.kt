@@ -1,6 +1,5 @@
 package com.neojou.alsimugame
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -8,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.neojou.alsimugame.ui.theme.AppTheme
 import com.neojou.tools.LogLevel
 import com.neojou.tools.MyLog
 import com.neojou.tools.SystemSettings
@@ -73,11 +73,12 @@ fun App() {
             }
     }
 
-    MaterialTheme {
+    // AppTheme embeds Noto Sans TC so Wasm/Skiko can render Chinese (not system CSS fonts).
+    AppTheme {
         when (val state = initState) {
-            AppInitState.Loading -> Text("Loading...")
+            AppInitState.Loading -> Text("載入中…")
             AppInitState.Ready -> ALSimuGame()
-            is AppInitState.Error -> Text("Init failed: ${state.error.message ?: "unknown"}")
+            is AppInitState.Error -> Text("初始化失敗: ${state.error.message ?: "unknown"}")
         }
     }
 }

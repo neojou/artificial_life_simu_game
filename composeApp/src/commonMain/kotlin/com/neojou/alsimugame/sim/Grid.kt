@@ -9,8 +9,8 @@ import com.neojou.alsimugame.sim.model.TileState
  * Fixed [SimConfig.GRID_SIZE]×[SimConfig.GRID_SIZE] world map.
  *
  * Layout:
- * - Center [GridPos.CAMP] `(1,1)` is the non-tillable homestead (no [Tile]).
- * - The other eight cells are peripheral land, each holding a [Tile].
+ * - Center [GridPos.CAMP] is the non-tillable homestead (no [Tile]).
+ * - All other cells are peripheral land, each holding a [Tile].
  *
  * Construction initialises every peripheral tile to [TileState.GRASS]
  * with zero age and zero pending harvest (GDD MVP defaults).
@@ -101,7 +101,7 @@ class Grid(
     private fun indexOf(pos: GridPos): Int = pos.y * size + pos.x
 
     companion object {
-        /** Creates a default MVP grid: 3×3, camp center, eight grasslands. */
+        /** Creates a default MVP grid: [SimConfig.GRID_SIZE]², camp center, all grass. */
         fun createDefault(): Grid = Grid(SimConfig.GRID_SIZE)
     }
 }

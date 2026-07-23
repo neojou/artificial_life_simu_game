@@ -6,9 +6,10 @@ import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Grid navigation helpers for the tiny 3×3 map (8-direction movement).
+ * Grid navigation helpers for the square map (8-direction movement).
  *
  * Distance metric is Chebyshev (diagonal counts as 1), matching GDD §5.2.
+ * On a 5×5 map, camp-adjacent cells are 1 step; corners are 2 steps from camp.
  */
 object Pathfinder {
 

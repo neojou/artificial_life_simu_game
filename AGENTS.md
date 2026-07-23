@@ -6,7 +6,7 @@
 
 ## 1. 專案是什麼
 
-- **遊戲**：小小寨營（Tiny Camp）— 3×3 土地 + 兩位自主村民的觀察型模擬。
+- **遊戲**：小小寨營（Tiny Camp）— 5×5 土地 + 兩位自主村民的觀察型模擬。
 - **GDD**：[`game_design.md`](./game_design.md)（機制與數值的唯一產品真相）。
 - **架構**：[`Architecture.md`](./Architecture.md)（套件、tick、AI、UI 邊界）。
 - **進度與任務卡**：[`tasks.md`](./tasks.md)（一次只做一張卡）。
@@ -63,6 +63,7 @@ UI 任務：Desktop `run` 可啟動且無 crash 即可；Wasm 非必要不驗證
 - 隨機必須 **seeded**（`SimRng` / `Random(seed)`），保證可重現。
 - 日誌可用既有 `com.neojou.tools.MyLog`；模組 tag 簡短（如 `SIM`, `AI`, `UI`）。
 - 公開 API 與非顯而易見邏輯寫 KDoc（精簡即可）。
+- **中文 UI（Wasm）**：Compose/Skiko 不會用瀏覽器 CSS 字型；必須用 `composeResources/font` 內嵌 CJK 字型（見 `ui/theme/AppTheme.kt`、`licenses/FONTS.md`）。
 
 ### 套件根
 
@@ -76,7 +77,7 @@ UI：`...alsimugame.ui.*`
 
 ### 做（GDD §8 包含）
 
-- 3×3、三種土地狀態、12 日轉換、每日田地生產  
+- 5×5、三種土地狀態、12 日轉換、每日田地生產（pending 上限 3）  
 - 兩位固定村民 + 自主 AI（GDD §5）  
 - 日夜 6 tick/日、糧食與體力  
 - 基本 HUD、速度、暫停、重置、seed  
@@ -89,7 +90,7 @@ UI：`...alsimugame.ui.*`
 - 玩家點擊指揮村民  
 - 水/肥料/工具/天氣/災害  
 - 音效配樂、成就、雲存檔、多人  
-- 地圖 > 3×3、鏡頭滾動縮放  
+- 地圖 > 5×5、鏡頭滾動縮放  
 - 全專案無關重構、依賴大升級、文件大翻修（除非任務指定）
 
 若使用者要求超出範圍：先提醒，**預設拒絕擴 scope**，建議開新任務卡。

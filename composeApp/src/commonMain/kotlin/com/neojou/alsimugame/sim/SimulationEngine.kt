@@ -168,18 +168,18 @@ class SimulationEngine(
     }
 
     /**
-     * Simplified stranded rule (M2-T3 / GDD §4.2):
-     * if it is night, the agent is not at camp, and stamina is 0 after acting,
-     * they die (cannot safely remain outside).
+     * Stranded-at-night rule (GDD §4.2, adapted for multi-step maps):
+     * if it is night, stamina is 0, the agent is not at camp, **and** they are not
+     * actively force-returning, they die.
      *
-     * On the default 3×3 map, emergency [force] return usually prevents this
-     * when the agent is adjacent to camp; the rule remains for edge cases and tests.
+     * Agents in [AgentMode.RETURNING] / [Agent.returnHome] may need several hours
+     * to walk home on a 5×5 map; they are not killed mid-path.
      */
     private fun applyStrandedNightDeath(agent: Agent) {
         if (!agent.isAlive) return
-        if (clock.isNight && !agent.isAtCamp && agent.stamina <= 0) {
-            kill(agent, reason = "stranded_night")
-        }
+        if (!clock.isNight || agent.isAtCamp || agent.stamina > 0) return
+        if (agent.mode == AgentMode.RETURNING || agent.returnHome) return
+        kill(agent, reason = "stranded_night")
     }
 
     /**

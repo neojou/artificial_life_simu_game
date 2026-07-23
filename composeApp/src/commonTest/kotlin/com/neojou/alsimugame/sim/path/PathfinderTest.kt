@@ -24,24 +24,35 @@ class PathfinderTest {
 
     @Test
     fun areAdjacent_eightWayIncludingDiagonal() {
-        assertTrue(Pathfinder.areAdjacent(GridPos.CAMP, GridPos(0, 0)))
-        assertTrue(Pathfinder.areAdjacent(GridPos.CAMP, GridPos(1, 0)))
+        // Camp (2,2) is adjacent to (1,1) and (2,1), not to corner (0,0) on 5×5
+        assertTrue(Pathfinder.areAdjacent(GridPos.CAMP, GridPos(1, 1)))
+        assertTrue(Pathfinder.areAdjacent(GridPos.CAMP, GridPos(2, 1)))
+        assertFalse(Pathfinder.areAdjacent(GridPos.CAMP, GridPos(0, 0)))
         assertFalse(Pathfinder.areAdjacent(GridPos(0, 0), GridPos(2, 2)))
         assertFalse(Pathfinder.areAdjacent(GridPos.CAMP, GridPos.CAMP))
     }
 
     @Test
-    fun pathFromAnyPeripheralToCamp_isExactlyOneStep() {
+    fun pathToCamp_lengthEqualsChebyshevDistance() {
         for (x in 0 until SimConfig.GRID_SIZE) {
             for (y in 0 until SimConfig.GRID_SIZE) {
                 val pos = GridPos(x, y)
                 if (pos.isCamp()) continue
                 val path = Pathfinder.pathToCamp(pos)
-                assertEquals(1, path.size, "from $pos")
-                assertEquals(GridPos.CAMP, path.single())
-                assertEquals(GridPos.CAMP, Pathfinder.nextStepTowardCamp(pos))
+                val dist = Pathfinder.chebyshev(pos, GridPos.CAMP)
+                assertEquals(dist, path.size, "from $pos")
+                assertEquals(GridPos.CAMP, path.last())
+                val step = Pathfinder.nextStepTowardCamp(pos)
+                assertTrue(step != null && Pathfinder.areAdjacent(pos, step))
             }
         }
+    }
+
+    @Test
+    fun cornerToCamp_isTwoSteps_on5x5() {
+        val path = Pathfinder.pathToCamp(GridPos(0, 0))
+        assertEquals(2, path.size)
+        assertEquals(GridPos.CAMP, path.last())
     }
 
     @Test
@@ -51,12 +62,13 @@ class PathfinderTest {
     }
 
     @Test
-    fun pathBetweenCorners_usesShortestChebyshev() {
-        val path = Pathfinder.findPath(GridPos(0, 0), GridPos(2, 2))
-        assertEquals(2, path.size)
-        assertEquals(GridPos(2, 2), path.last())
-        // each step must be adjacent
-        var prev = GridPos(0, 0)
+    fun pathBetweenOppositeCorners_usesShortestChebyshev() {
+        val from = GridPos(0, 0)
+        val to = GridPos(SimConfig.GRID_SIZE - 1, SimConfig.GRID_SIZE - 1)
+        val path = Pathfinder.findPath(from, to)
+        assertEquals(Pathfinder.chebyshev(from, to), path.size)
+        assertEquals(to, path.last())
+        var prev = from
         for (step in path) {
             assertTrue(Pathfinder.areAdjacent(prev, step), "$prev -> $step")
             prev = step
@@ -65,6 +77,6 @@ class PathfinderTest {
 
     @Test
     fun outOfBounds_yieldsEmptyPath() {
-        assertTrue(Pathfinder.findPath(GridPos(0, 0), GridPos(9, 9)).isEmpty())
+        assertTrue(Pathfinder.findPath(GridPos(0, 0), GridPos(99, 99)).isEmpty())
     }
 }

@@ -55,17 +55,18 @@ class AgentBrainTest {
         val a = agent(pos = GridPos(0, 0), stamina = 0)
         val action = AgentBrain.decide(a, world(hour = 4))
         val move = assertIs<AgentAction.Move>(action)
-        assertEquals(GridPos.CAMP, move.dest)
+        // Next step along path (not necessarily camp on multi-step maps)
+        assertTrue(com.neojou.alsimugame.sim.path.Pathfinder.areAdjacent(a.pos, move.dest))
         assertTrue(move.force)
         assertEquals(AgentMode.RETURNING, a.mode)
     }
 
     @Test
     fun lowStaminaAway_returnsHome() {
-        val a = agent(pos = GridPos(2, 2), stamina = 1)
+        val a = agent(pos = GridPos(0, 0), stamina = 1)
         val action = AgentBrain.decide(a, world(hour = 1))
         val move = assertIs<AgentAction.Move>(action)
-        assertEquals(GridPos.CAMP, move.dest)
+        assertTrue(com.neojou.alsimugame.sim.path.Pathfinder.areAdjacent(a.pos, move.dest))
         assertTrue(a.returnHome)
     }
 
@@ -122,9 +123,10 @@ class AgentBrainTest {
         assertEquals(TileState.FARM, tile.state)
         agent.returnHome = true
         agent.mode = AgentMode.RETURNING
+        agent.pos = GridPos(0, 0)
         val back = AgentBrain.decide(agent, world(hour = 1))
         val move = assertIs<AgentAction.Move>(back)
-        assertEquals(GridPos.CAMP, move.dest)
+        assertTrue(com.neojou.alsimugame.sim.path.Pathfinder.areAdjacent(agent.pos, move.dest))
     }
 }
 

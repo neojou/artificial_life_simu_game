@@ -16,6 +16,9 @@ object SimConfig {
     /** Food produced by each FARM tile at the start of a new day. */
     const val FARM_YIELD_PER_DAY: Int = 1
 
+    /** Cap on [com.neojou.alsimugame.sim.model.Tile.pendingHarvest] per farm tile. */
+    const val MAX_PENDING_HARVEST: Int = 3
+
     /** Stamina cost to move one cell (8-direction). */
     const val MOVE_STAMINA: Int = 1
 
@@ -50,12 +53,12 @@ object SimConfig {
      */
     const val HOURS_PER_DAY: Int = 6
 
-    /** Side length of the square map (3 → 3×3). */
-    const val GRID_SIZE: Int = 3
+    /** Side length of the square map (5 → 5×5). */
+    const val GRID_SIZE: Int = 5
 
-    /** Camp (home base) cell coordinates. */
-    const val CAMP_X: Int = 1
-    const val CAMP_Y: Int = 1
+    /** Camp (home base) at map center. */
+    const val CAMP_X: Int = 2
+    const val CAMP_Y: Int = 2
 
     /** Passive stamina restored when resting at camp overnight (GDD §4.2). */
     const val NIGHT_REST_STAMINA: Int = 2

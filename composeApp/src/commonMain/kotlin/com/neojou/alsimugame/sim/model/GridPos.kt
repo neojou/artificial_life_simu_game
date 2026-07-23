@@ -4,7 +4,7 @@ package com.neojou.alsimugame.sim.model
  * Integer cell coordinate on the square simulation map.
  *
  * Valid range for the default map: `x,y ∈ [0, [SimConfig.GRID_SIZE])`.
- * The camp home base is always [CAMP] = `(1, 1)`.
+ * The camp home base is always [CAMP] (map center, see [SimConfig.CAMP_X]).
  *
  * @property x Column index (0 = west).
  * @property y Row index (0 = north).
@@ -21,7 +21,7 @@ data class GridPos(
     fun isCamp(): Boolean = this == CAMP
 
     companion object {
-        /** Home base at the center of the default 3×3 map. */
+        /** Home base at the center of the default map. */
         val CAMP: GridPos = GridPos(SimConfig.CAMP_X, SimConfig.CAMP_Y)
     }
 }

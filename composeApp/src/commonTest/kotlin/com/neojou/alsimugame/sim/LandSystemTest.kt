@@ -77,6 +77,19 @@ class LandSystemTest {
     }
 
     @Test
+    fun pendingHarvest_capsAtMaxPendingHarvest() {
+        val engine = landOnlyEngine()
+        val tile = engine.grid.tileAt(samplePos)
+        assertNotNull(tile)
+        LandSystem.till(tile)
+
+        engine.runDays(SimConfig.MAX_PENDING_HARVEST + 5)
+
+        assertEquals(TileState.FARM, tile.state)
+        assertEquals(SimConfig.MAX_PENDING_HARVEST, tile.pendingHarvest)
+    }
+
+    @Test
     fun grassDoesNotGainPendingHarvest() {
         val engine = landOnlyEngine()
         val tile = engine.grid.tileAt(samplePos)
