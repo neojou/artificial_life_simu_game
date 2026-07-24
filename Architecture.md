@@ -75,6 +75,7 @@ composeApp/src/
       BoardView.kt                  # 全幅 seamless tile + 連續座標 pawn
       AgentVisual.kt                # 顯示層姿態（from/to + progress 補間）
       AgentModeBadge.kt             # mode → 頭上徽章字/色 + bob/pulse（M5-T2）
+      TileFx.kt                     # 可採收高亮 + 墾/收 FX helpers（M5-T3）
       SimulationController.kt       # play/pause/speed；邏輯 stepHour + 視覺 lerp
       HudView.kt                    # 年/日/晝夜/糧食（Info 彈窗）
       SettingsPanel.kt              # 速度 + Seed（Settings 彈窗）

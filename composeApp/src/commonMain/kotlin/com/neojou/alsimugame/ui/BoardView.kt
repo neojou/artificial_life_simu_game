@@ -1,5 +1,6 @@
 package com.neojou.alsimugame.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -8,6 +9,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -154,6 +156,26 @@ fun BoardView(
                     },
                 )
             }
+
+            // Work FX bursts over tilling/harvesting agents (M5-T3)
+            visuals.forEach { visual ->
+                val fx = workFxKind(visual.mode) ?: return@forEach
+                val burstSize = cell * 0.55f
+                val ox = with(density) {
+                    (cell * visual.displayX + (cell - burstSize) / 2f).toPx()
+                }
+                val oy = with(density) {
+                    (cell * visual.displayY + (cell - burstSize) / 2f).toPx() -
+                        cell.toPx() * 0.12f
+                }
+                WorkFxBurst(
+                    kind = fx,
+                    size = burstSize,
+                    modifier = Modifier.offset {
+                        IntOffset(ox.roundToInt(), oy.roundToInt())
+                    },
+                )
+            }
         }
     }
 }
@@ -256,6 +278,28 @@ private fun TileOnlyCell(
     val hoverSummary = remember(x, y, isCamp, tile, agents, campFood) {
         buildHoverSummary(x, y, isCamp, tile, agents, campFood)
     }
+    val harvestReady = isHarvestHighlight(tile)
+    val workOnCell = agents.mapNotNull { workFxKind(it.mode) }.firstOrNull()
+
+    val pulse = rememberInfiniteTransition(label = "harvest-$x-$y")
+    val borderAlpha by pulse.animateFloat(
+        initialValue = 0.35f,
+        targetValue = if (harvestReady) 0.95f else 0.35f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "harvestBorder-$x-$y",
+    )
+    val washAlpha by pulse.animateFloat(
+        initialValue = 0.12f,
+        targetValue = if (harvestReady) 0.32f else 0.12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "harvestWash-$x-$y",
+    )
 
     Box(
         modifier = modifier
@@ -280,6 +324,29 @@ private fun TileOnlyCell(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )
+
+        // M5-T3: ripe farm pulse highlight
+        if (harvestReady) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(HarvestHighlightFill.copy(alpha = washAlpha))
+                    .border(
+                        width = 2.dp,
+                        color = HarvestHighlightBorder.copy(alpha = borderAlpha),
+                    ),
+            )
+        }
+
+        // Soft cell flash while someone works here this hour
+        if (workOnCell != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(workFxColor(workOnCell).copy(alpha = 0.18f)),
+            )
+        }
+
         if (tile != null && tile.state == TileState.FARM && tile.pendingHarvest > 0) {
             Text(
                 text = "×${tile.pendingHarvest}",
@@ -294,6 +361,61 @@ private fun TileOnlyCell(
                     .padding(horizontal = 3.dp, vertical = 1.dp),
             )
         }
+    }
+}
+
+/**
+ * Floating glyph + ring while an agent is tilling/harvesting (M5-T3).
+ * Visual-only; does not touch simulation ticks.
+ */
+@Composable
+private fun WorkFxBurst(
+    kind: WorkFxKind,
+    size: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val appFont = rememberAppFontFamily()
+    val color = workFxColor(kind)
+    val transition = rememberInfiniteTransition(label = "workFx-$kind")
+    val scale by transition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 480, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "workFxScale",
+    )
+    val alpha by transition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 480, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "workFxAlpha",
+    )
+
+    Box(
+        modifier = modifier
+            .size(size)
+            .scale(scale)
+            .alpha(alpha),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize(0.85f)
+                .border(2.dp, color.copy(alpha = 0.75f), CircleShape)
+                .background(color.copy(alpha = 0.2f), CircleShape),
+        )
+        Text(
+            text = workFxLabel(kind),
+            color = color,
+            fontWeight = FontWeight.Bold,
+            fontFamily = appFont,
+            fontSize = (size.value * 0.42f).sp,
+        )
     }
 }
 

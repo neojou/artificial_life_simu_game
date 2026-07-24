@@ -506,7 +506,7 @@ Minimal StatsRecorder fields if missing. Stop when DoD is met.
 
 ## M5-T3 — 土地可採收高亮與簡易特效
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-24）  
 - **依賴**：M5-T2  
 - **用量**：~10%  
 - **目標**：pending>0 高亮；開墾/採收短暫提示。  
@@ -514,15 +514,9 @@ Minimal StatsRecorder fields if missing. Stop when DoD is met.
 - **非範圍**：音效、Spine 級動畫
 
 **DoD**：
-- [ ] 可採收田地可辨
-- [ ] 不影響 tick 正確性（tests 綠）
-
-**Grok Prompt**：
-```
-Implement tasks.md M5-T3 only.
-Harvest highlight + simple till/harvest feedback FX.
-No audio. Stop when DoD is met.
-```
+- [x] 可採收田地可辨（ripe 圖 + 金邊脈衝 + ×pending）
+- [x] 開墾/採收：格上淡彩 + 浮字「墾/收」光環（視覺層；不改 tick）
+- [x] `TileFxTest` + desktopTest 綠；無音效
 
 ---
 
@@ -663,3 +657,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-24 | Vis-B hotfix：pawn idle 粉紅底去背 + idle 性別錯檔對調；work/carry 姿勢對齊 |
 | 2026-07-24 | Vis-C：MyTopMenuBar + 全幅 Board + Info/Settings Dialog + hover tip |
 | 2026-07-24 | M5-T2：Agent mode 頭上徽章（休探墾收回補亡）+ bob/pulse；下一張 M5-T3 |
+| 2026-07-24 | M5-T3：可採收田地脈衝高亮 + 開墾/採收 WorkFx；下一張 M6-T1 |
