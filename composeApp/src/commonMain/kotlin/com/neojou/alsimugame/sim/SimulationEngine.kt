@@ -152,18 +152,24 @@ class SimulationEngine(
             }
             AgentAction.TillHere -> {
                 val tile = grid.tileAt(agent.pos) ?: return
+                // Keep TILLING for this full hour so UI can show 墾; return starts next tick.
                 if (Economy.tryPayAndTill(agent, tile)) {
                     agent.returnHome = true
-                    agent.mode = AgentMode.RETURNING
+                    agent.mode = AgentMode.TILLING
+                } else {
+                    agent.mode = AgentMode.EXPLORING
                 }
             }
             AgentAction.HarvestHere -> {
                 val tile = grid.tileAt(agent.pos) ?: return
                 val amount = Economy.tryHarvest(agent, tile)
+                // Keep HARVESTING for this full hour so UI can show 收; return starts next tick.
                 if (amount != null) {
                     stats.recordHarvest(amount)
                     agent.returnHome = true
-                    agent.mode = AgentMode.RETURNING
+                    agent.mode = AgentMode.HARVESTING
+                } else {
+                    agent.mode = AgentMode.EXPLORING
                 }
             }
             AgentAction.SupplyAtCamp -> {
