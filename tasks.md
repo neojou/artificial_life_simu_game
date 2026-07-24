@@ -461,6 +461,24 @@ Minimal StatsRecorder fields if missing. Stop when DoD is met.
   - [x] desktop + wasm compile；desktopTest 全綠
   - [x] Architecture / GDD / AGENTS / tasks 已記 Vis-B
 
+## Vis-C — Top menu + 全幅地圖 + Info/Settings
+
+- [x] **狀態**：done（2026-07-24）  
+- **依賴**：Vis-B  
+- **目標**：沉浸式觀察——地圖全幅；chrome 收斂到 top menu 與彈窗。  
+- **範圍**：
+  - `MyTopMenuBar` / `MyTopMenuItem`：Info、Settings、播放/暫停、單步、重置  
+  - Info Dialog：HUD + 狀態列 + 統計 + hover 摘要  
+  - Settings Dialog：速度 + Seed（套用重置並播放）  
+  - 主體 `BoardView` 無標題/圖例/外框 padding；hover 半透明 tooltip  
+- **非範圍**：OS 全螢幕 API、改 menu 元件本身、快捷鍵、設定持久化  
+- **DoD**：
+  - [x] Top menu 五項可用且接 controller  
+  - [x] 無常駐頂 HUD / 底控制列  
+  - [x] Info / Settings 彈窗內容正確  
+  - [x] 重置用目前 seed；套用 Seed 重置並 play  
+  - [x] `SeedInputTest` + desktopTest 綠；文件已更新  
+
 ## M5-T1 — 日夜色調（2D 已取消）
 
 - [x] **狀態**：cancelled（2026-07-24）— 2D 固定淺色背景，晝夜僅 HUD 顯示；全畫面光線留待未來 3D  
@@ -471,7 +489,7 @@ Minimal StatsRecorder fields if missing. Stop when DoD is met.
 
 ## M5-T2 — Agent 狀態表現
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：done（2026-07-24）  
 - **依賴**：M4-T3（原依賴 M5-T1 已取消）  
 - **用量**：~10%  
 - **目標**：依 mode 顯示不同圖示/emoji/簡單動畫狀態。  
@@ -479,15 +497,10 @@ Minimal StatsRecorder fields if missing. Stop when DoD is met.
 - **非範圍**：8 向逐幀 sprite 大工程（可簡化）
 
 **DoD**：
-- [ ] 至少 4 種 mode 視覺可辨
-- [ ] Desktop 手動驗
-
-**Grok Prompt**：
-```
-Implement tasks.md M5-T2 only.
-Visual agent modes (icons/simple anim). Keep scope small.
-Stop when DoD is met.
-```
+- [x] 至少 4 種 mode 視覺可辨（頭上徽章：休/探/墾/收/回/補/亡 + 色）
+- [x] 簡單動畫：休息 bob、開墾/採收 pulse、死亡半透明
+- [x] 男女仍用既有 pawn 姿態 sheet；`AgentModeBadgeTest` + `WorldAssetsPawnTest` 綠
+- [x] Desktop 可手動驗（compile 綠）
 
 ---
 
@@ -648,3 +661,5 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-24 | Vis-A：正俯視 tile+pawn 資產與 BoardView 重寫；GDD 視角改 RimWorld 式 2D |
 | 2026-07-24 | Vis-B：seamless 棋盤 + AgentVisual 小時補間移動；sim 仍 stepHour |
 | 2026-07-24 | Vis-B hotfix：pawn idle 粉紅底去背 + idle 性別錯檔對調；work/carry 姿勢對齊 |
+| 2026-07-24 | Vis-C：MyTopMenuBar + 全幅 Board + Info/Settings Dialog + hover tip |
+| 2026-07-24 | M5-T2：Agent mode 頭上徽章（休探墾收回補亡）+ bob/pulse；下一張 M5-T3 |

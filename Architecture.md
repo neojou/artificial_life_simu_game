@@ -71,15 +71,20 @@ composeApp/src/
       StatsRecorder.kt              # 每日摘要 / 簡易 replay
       SimRng.kt                     # Random(seed) 包裝
     ui/
-      SimScreen.kt
-      BoardView.kt                  # 正俯視 seamless tile + 連續座標 pawn（RimWorld 感）
+      SimScreen.kt                  # Vis-C：Top menu + 全幅 Board + Info/Settings Dialog
+      BoardView.kt                  # 全幅 seamless tile + 連續座標 pawn
       AgentVisual.kt                # 顯示層姿態（from/to + progress 補間）
+      AgentModeBadge.kt             # mode → 頭上徽章字/色 + bob/pulse（M5-T2）
       SimulationController.kt       # play/pause/speed；邏輯 stepHour + 視覺 lerp
-      HudView.kt
-      ControlsView.kt
-      StatsPanel.kt
+      HudView.kt                    # 年/日/晝夜/糧食（Info 彈窗）
+      SettingsPanel.kt              # 速度 + Seed（Settings 彈窗）
+      StatsPanel.kt                 # 土地/人口統計（Info 彈窗）
+      SeedInput.kt                  # seed 解析 helper
       WorldAssets.kt                # tile/pawn DrawableResource 對照
       theme/                        # AppTheme 字型等；2D 固定淺色（無日夜全畫面 tint）
+    tools/ui/menu/
+      MyTopMenuBar.kt               # 可重用 top menu（items 驅動）
+      MyTopMenuItem.kt
     composeResources/
       drawable/                     # tile_* / pawn_* PNG
       font/                         # NotoSansTC
@@ -267,7 +272,24 @@ data class UiFrame(
 - **UI 只讀 snapshot / AgentVisual**，禁止直接 mutate `Tile` / `Agent`。
 - **正俯視 2D** 5×5 全圖、地磚銜接無間隙；**無相機平移縮放**（GDD §6.1）。
 - 土地：`painterResource` 依 `TileState`；角色：依 gender / mode / carried 選 pawn，疊在連續座標。
-- 日夜僅 HUD 標示；全畫面光線留給 3D。
+- 日夜在 Info 彈窗 HUD 標示；全畫面光線留給 3D。
+
+**版面（Vis-C）**
+
+```
+Column {
+  MyTopMenuBar(Info, Settings, 播放/暫停, 單步, 重置)   // tools.ui.menu
+  Box(weight=1) {
+    BoardView(fillMaxSize)   // 無外框 padding；無標題/圖例
+    HoverTooltip (bottom)
+  }
+}
+// Dialogs: Info → HudView + 狀態 + Stats + hover 摘要
+//          Settings → SettingsPanel（速度 + Seed）
+```
+
+- 播放控制在 top menu；速度/Seed 在 Settings；詳細資訊在 Info。
+- 地圖主體全幅覆蓋，方便日後全螢幕。
 
 ---
 

@@ -24,83 +24,48 @@ import androidx.compose.ui.unit.dp
 import com.neojou.alsimugame.ui.theme.rememberAppFontFamily
 
 /**
- * Bottom control strip (GDD §6.3): play/pause, step, speed, reset, seed input.
+ * Speed + Seed controls for the Settings dialog (Vis-C).
+ *
+ * Playback (play / step / reset) lives on the top menu bar.
  */
 @Composable
-fun ControlsView(
-    playing: Boolean,
+fun SettingsPanel(
     speed: Int,
     speedOptions: List<Int>,
     currentSeed: Long,
-    gameOver: Boolean,
-    onPlay: () -> Unit,
-    onPause: () -> Unit,
-    onStep: () -> Unit,
     onSpeed: (Int) -> Unit,
-    onReset: (seed: Long) -> Unit,
+    onApplySeed: (seed: Long, resumePlay: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val appFont = rememberAppFontFamily()
     var seedText by remember { mutableStateOf(currentSeed.toString()) }
     var seedError by remember { mutableStateOf<String?>(null) }
 
-    // Keep field in sync when controller seed changes (e.g. external reset).
     LaunchedEffect(currentSeed) {
         seedText = currentSeed.toString()
         seedError = null
     }
 
-    fun parseSeedOrNull(): Long? {
-        val raw = seedText.trim()
-        if (raw.isEmpty()) {
-            seedError = "請輸入 Seed"
-            return null
-        }
-        val value = raw.toLongOrNull()
-        if (value == null) {
-            seedError = "Seed 須為整數"
-            return null
-        }
-        seedError = null
-        return value
-    }
-
-    fun resetWithField(resumePlay: Boolean) {
-        val seed = parseSeedOrNull() ?: return
-        onReset(seed)
-        if (resumePlay) {
-            onPlay()
+    fun applySeed(resumePlay: Boolean) {
+        when (val result = parseSeedInput(seedText)) {
+            is SeedParseResult.Ok -> {
+                seedError = null
+                onApplySeed(result.seed, resumePlay)
+            }
+            is SeedParseResult.Err -> seedError = result.message
         }
     }
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Playback
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (playing) {
-                Button(onClick = onPause) {
-                    Text("暫停", fontFamily = appFont)
-                }
-            } else {
-                Button(onClick = onPlay, enabled = !gameOver) {
-                    Text("播放", fontFamily = appFont)
-                }
-            }
-            OutlinedButton(onClick = onStep, enabled = !gameOver) {
-                Text("單步", fontFamily = appFont)
-            }
-            OutlinedButton(onClick = { resetWithField(resumePlay = false) }) {
-                Text("重置", fontFamily = appFont)
-            }
-        }
+        Text(
+            text = "模擬設定",
+            style = MaterialTheme.typography.titleMedium,
+            fontFamily = appFont,
+        )
 
-        // Speed
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -119,7 +84,6 @@ fun ControlsView(
             }
         }
 
-        // Seed
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -128,10 +92,7 @@ fun ControlsView(
             OutlinedTextField(
                 value = seedText,
                 onValueChange = { input ->
-                    // Allow optional leading minus and digits only.
-                    seedText = input.filterIndexed { index, c ->
-                        c.isDigit() || (c == '-' && index == 0)
-                    }.take(20)
+                    seedText = filterSeedFieldInput(input)
                     seedError = null
                 },
                 modifier = Modifier
@@ -144,11 +105,16 @@ fun ControlsView(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = appFont),
             )
-            Button(
-                onClick = { resetWithField(resumePlay = true) },
-            ) {
+            Button(onClick = { applySeed(resumePlay = true) }) {
                 Text("套用 Seed", fontFamily = appFont)
             }
         }
+
+        Text(
+            text = "「套用 Seed」會以該 seed 重置並繼續播放。選單「重置」則用目前 seed 重置並暫停。",
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = appFont,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+        )
     }
 }

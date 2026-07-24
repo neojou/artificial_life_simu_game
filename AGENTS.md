@@ -66,6 +66,7 @@ UI 任務：Desktop `run` 可啟動且無 crash 即可；Wasm 非必要不驗證
 - **中文 UI（Wasm）**：Compose/Skiko 不會用瀏覽器 CSS 字型；必須用 `composeResources/font` 內嵌 CJK 字型（見 `ui/theme/AppTheme.kt`、`licenses/FONTS.md`）。
 - **視覺（v0.1）**：正俯視 2D seamless tile + pawn（非純色塊、格間無 gap）；資產在 `composeResources/drawable/`（`tile_*`、`pawn_*`）。風格：淡雅手繪/水彩、Q 版角色。日夜不壓暗全畫面。Wasm 注意 PNG 尺寸。
 - **顯示 vs 邏輯（Vis-B）**：`stepHour` 保持離散；平滑移動只在 UI（`AgentVisual` + `SimulationController` 補間）。勿為了畫面把 sim 改成更細 tick。`DEFAULT_BASE_DELAY_MS≈1800` 對應 1× 走一格。
+- **版面（Vis-C）**：`MyTopMenuBar`（Info / Settings / 播放 / 單步 / 重置）+ 全幅 `BoardView`；詳細 HUD/統計進 Info Dialog，速度/Seed 進 Settings Dialog。勿再把常駐列塞回地圖上下。
 
 ### 套件根
 

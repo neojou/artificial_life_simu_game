@@ -1,5 +1,11 @@
 package com.neojou.alsimugame.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,14 +19,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -32,11 +40,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
-import com.neojou.alsimugame.composeapp.generated.resources.Res
-import com.neojou.alsimugame.composeapp.generated.resources.tile_camp
-import com.neojou.alsimugame.composeapp.generated.resources.tile_empty
-import com.neojou.alsimugame.composeapp.generated.resources.tile_farm
-import com.neojou.alsimugame.composeapp.generated.resources.tile_grass
 import com.neojou.alsimugame.sim.model.AgentMode
 import com.neojou.alsimugame.sim.model.AgentSnapshot
 import com.neojou.alsimugame.sim.model.Gender
@@ -45,11 +48,10 @@ import com.neojou.alsimugame.sim.model.SimSnapshot
 import com.neojou.alsimugame.sim.model.TileSnapshot
 import com.neojou.alsimugame.sim.model.TileState
 import com.neojou.alsimugame.ui.theme.rememberAppFontFamily
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
 
-/** Soft paper-like board surround. */
+/** Soft paper-like board surround (full-bleed under tiles). */
 private val BoardMatte = Color(0xFFF3EDE3)
 
 /** Hover target for board tooltips (GDD §6.3). */
@@ -61,6 +63,8 @@ data class BoardHoverInfo(
 
 /**
  * Top-down RimWorld-style board: seamless tiles + smoothly interpolated pawns.
+ *
+ * Vis-C: full-bleed map only (no title / legend chrome).
  */
 @Composable
 fun BoardView(
@@ -71,14 +75,12 @@ fun BoardView(
     agentVisuals: List<AgentVisual> = emptyList(),
     onHover: (BoardHoverInfo?) -> Unit = {},
 ) {
-    val appFont = rememberAppFontFamily()
     val tileByPos = remember(frameId, snapshot.tiles) {
         snapshot.tiles.associateBy { it.x to it.y }
     }
     val agentsByPos = remember(frameId, snapshot.agents) {
         snapshot.agents.groupBy { it.x to it.y }
     }
-    // Prefer continuous visuals when provided; else snap to logical cells.
     val visuals = if (agentVisuals.isNotEmpty()) {
         agentVisuals
     } else {
@@ -91,104 +93,150 @@ fun BoardView(
         }
     }
 
-    Column(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(BoardMatte, RoundedCornerShape(12.dp))
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .background(BoardMatte),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "小小寨營",
-            style = MaterialTheme.typography.titleSmall,
-            fontFamily = appFont,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF5D4E37),
-        )
+        val side = min(maxWidth, maxHeight)
+        val cell: Dp = side / gridSize
+        val density = LocalDensity.current
 
-        BoxWithConstraints(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            val side = min(maxWidth, maxHeight) * 0.99f
-            val cell: Dp = side / gridSize
-            val density = LocalDensity.current
-
-            Box(modifier = Modifier.size(side)) {
-                // --- Seamless tile grid (gap = 0) ---
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(0.dp),
-                ) {
-                    for (y in 0 until gridSize) {
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(0.dp),
-                        ) {
-                            for (x in 0 until gridSize) {
-                                val isCamp = x == SimConfig.CAMP_X && y == SimConfig.CAMP_Y
-                                val tile = tileByPos[x to y]
-                                val agentsHere = agentsByPos[x to y].orEmpty()
-                                TileOnlyCell(
-                                    x = x,
-                                    y = y,
-                                    isCamp = isCamp,
-                                    tile = tile,
-                                    agents = agentsHere,
-                                    campFood = snapshot.campFood,
-                                    onHover = onHover,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
-                                )
-                            }
+        Box(modifier = Modifier.size(side)) {
+            // Seamless tile grid (gap = 0)
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+            ) {
+                for (y in 0 until gridSize) {
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
+                        for (x in 0 until gridSize) {
+                            val isCamp = x == SimConfig.CAMP_X && y == SimConfig.CAMP_Y
+                            val tile = tileByPos[x to y]
+                            val agentsHere = agentsByPos[x to y].orEmpty()
+                            TileOnlyCell(
+                                x = x,
+                                y = y,
+                                isCamp = isCamp,
+                                tile = tile,
+                                agents = agentsHere,
+                                campFood = snapshot.campFood,
+                                onHover = onHover,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                            )
                         }
                     }
                 }
+            }
 
-                // --- Pawns on continuous coordinates (smooth walk) ---
-                visuals.forEach { visual ->
-                    val alpha = if (visual.mode == AgentMode.DEAD) 0.4f else 1f
-                    val pawnSize = cell * 0.72f
-                    // Center of cell (displayX, displayY) in grid units → pixel offset
-                    val offsetX = with(density) {
-                        (cell * visual.displayX + (cell - pawnSize) / 2f).toPx()
-                    }
-                    val offsetY = with(density) {
-                        (cell * visual.displayY + (cell - pawnSize) / 2f).toPx()
-                    }
-                    // Snapshot for drawable selection
-                    val pseudo = AgentSnapshot(
-                        id = visual.id,
-                        gender = visual.gender,
-                        x = visual.toX.roundToInt(),
-                        y = visual.toY.roundToInt(),
-                        stamina = 0,
-                        carriedFood = visual.carriedFood,
-                        ageDays = 0,
-                        mode = visual.mode,
-                        returnHome = false,
-                    )
-                    Image(
-                        painter = painterResource(WorldAssets.pawnFor(pseudo)),
-                        contentDescription = visual.id,
-                        contentScale = ContentScale.Fit,
-                        alpha = alpha,
-                        modifier = Modifier
-                            .size(pawnSize)
-                            .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) },
-                    )
+            // Pawns + mode badges (Vis-B move + M5-T2 mode cues)
+            visuals.forEach { visual ->
+                val pawnSize = cell * 0.72f
+                val offsetX = with(density) {
+                    (cell * visual.displayX + (cell - pawnSize) / 2f).toPx()
                 }
+                val offsetY = with(density) {
+                    (cell * visual.displayY + (cell - pawnSize) / 2f).toPx()
+                }
+                AgentPawn(
+                    visual = visual,
+                    pawnSize = pawnSize,
+                    modifier = Modifier.offset {
+                        IntOffset(offsetX.roundToInt(), offsetY.roundToInt())
+                    },
+                )
             }
         }
+    }
+}
 
-        BoardLegend()
+/**
+ * Pawn sprite + mode badge with light bob/pulse (M5-T2).
+ */
+@Composable
+private fun AgentPawn(
+    visual: AgentVisual,
+    pawnSize: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val appFont = rememberAppFontFamily()
+    val badge = agentModeBadge(visual.mode)
+    val baseAlpha = if (visual.mode == AgentMode.DEAD) 0.42f else 1f
+
+    val transition = rememberInfiniteTransition(label = "pawn-${visual.id}")
+    val bobPx by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = if (badge.bob) 3f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "bob-${visual.id}",
+    )
+    val pulseScale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (badge.pulse) 1.08f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 520, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "pulse-${visual.id}",
+    )
+
+    val pseudo = AgentSnapshot(
+        id = visual.id,
+        gender = visual.gender,
+        x = visual.toX.roundToInt(),
+        y = visual.toY.roundToInt(),
+        stamina = 0,
+        carriedFood = visual.carriedFood,
+        ageDays = 0,
+        mode = visual.mode,
+        returnHome = false,
+    )
+
+    val badgeSize = pawnSize * 0.38f
+
+    Box(
+        modifier = modifier
+            .size(pawnSize)
+            .offset { IntOffset(0, (-bobPx).roundToInt()) }
+            .scale(pulseScale)
+            .alpha(baseAlpha),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            painter = painterResource(WorldAssets.pawnFor(pseudo)),
+            contentDescription = "${visual.id} ${agentModeLabel(visual.mode)}",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize(),
+        )
+        // Mode badge above head
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = (-badgeSize * 0.15f))
+                .size(badgeSize)
+                .background(badge.background, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = badge.glyph,
+                color = badge.content,
+                fontSize = (badgeSize.value * 0.55f).sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = appFont,
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -278,47 +326,4 @@ private fun buildHoverSummary(
         }
     }
     return parts.joinToString(" ｜ ")
-}
-
-@Composable
-private fun BoardLegend() {
-    val appFont = rememberAppFontFamily()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        LegendTile(Res.drawable.tile_grass, "草地", appFont)
-        LegendTile(Res.drawable.tile_farm, "田地", appFont)
-        LegendTile(Res.drawable.tile_empty, "空地", appFont)
-        LegendTile(Res.drawable.tile_camp, "寨營", appFont)
-    }
-}
-
-@Composable
-private fun LegendTile(
-    res: DrawableResource,
-    label: String,
-    fontFamily: androidx.compose.ui.text.font.FontFamily,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Image(
-            painter = painterResource(res),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(16.dp)
-                .clip(RoundedCornerShape(3.dp)),
-        )
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            fontFamily = fontFamily,
-        )
-    }
 }

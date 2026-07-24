@@ -35,17 +35,29 @@ object WorldAssets {
         }
     }
 
+    /**
+     * Pose sprite by mode / carried food (M5-T2: badge still distinguishes modes
+     * that share the same pose sheet).
+     */
     fun pawnFor(agent: AgentSnapshot): DrawableResource {
         val male = agent.gender == Gender.MALE
-        return when {
-            agent.mode == AgentMode.DEAD ->
+        return when (agent.mode) {
+            AgentMode.DEAD ->
                 if (male) Res.drawable.pawn_male_idle else Res.drawable.pawn_female_idle
-            agent.mode == AgentMode.TILLING || agent.mode == AgentMode.HARVESTING ->
+            AgentMode.TILLING, AgentMode.HARVESTING ->
                 if (male) Res.drawable.pawn_male_work else Res.drawable.pawn_female_work
-            agent.carriedFood > 0 ->
-                if (male) Res.drawable.pawn_male_carry else Res.drawable.pawn_female_carry
-            else ->
-                if (male) Res.drawable.pawn_male_idle else Res.drawable.pawn_female_idle
+            AgentMode.RETURNING, AgentMode.SUPPLYING ->
+                if (agent.carriedFood > 0) {
+                    if (male) Res.drawable.pawn_male_carry else Res.drawable.pawn_female_carry
+                } else {
+                    if (male) Res.drawable.pawn_male_idle else Res.drawable.pawn_female_idle
+                }
+            AgentMode.RESTING, AgentMode.EXPLORING ->
+                if (agent.carriedFood > 0) {
+                    if (male) Res.drawable.pawn_male_carry else Res.drawable.pawn_female_carry
+                } else {
+                    if (male) Res.drawable.pawn_male_idle else Res.drawable.pawn_female_idle
+                }
         }
     }
 }

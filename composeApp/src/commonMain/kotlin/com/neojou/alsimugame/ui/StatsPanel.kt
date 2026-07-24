@@ -21,14 +21,17 @@ import com.neojou.alsimugame.ui.theme.rememberAppFontFamily
 import kotlin.math.roundToInt
 
 /**
- * Collapsible stats panel (GDD §6.3): land counts, population, cumulative production.
+ * Stats panel (GDD §6.3): land counts, population, cumulative production.
+ *
+ * Vis-C: usually embedded in the Info dialog with [showToggle]=false and [expanded]=true.
  */
 @Composable
 fun StatsPanel(
     snapshot: SimSnapshot,
     expanded: Boolean,
-    onToggle: () -> Unit,
+    onToggle: () -> Unit = {},
     hoverText: String? = null,
+    showToggle: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val appFont = rememberAppFontFamily()
@@ -53,11 +56,13 @@ fun StatsPanel(
                 fontFamily = appFont,
                 fontWeight = FontWeight.SemiBold,
             )
-            OutlinedButton(onClick = onToggle) {
-                Text(
-                    text = if (expanded) "收合" else "展開",
-                    fontFamily = appFont,
-                )
+            if (showToggle) {
+                OutlinedButton(onClick = onToggle) {
+                    Text(
+                        text = if (expanded) "收合" else "展開",
+                        fontFamily = appFont,
+                    )
+                }
             }
         }
 
