@@ -10,8 +10,8 @@
 
 | 欄位 | 值 |
 |------|-----|
-| 當前 Milestone | **M5 視覺 polish** |
-| 下一張待辦 | **M5-T2**（mode 表現已有基礎 sprite；可再強化） |
+| 當前 Milestone | **M6 收斂完成（v0.1 MVP 任務板）** |
+| 下一張待辦 | **無**（M6-T1/T2 已取消；後續另開 FIX 或 v0.2 卡） |
 | MVP 任務卡總數 | 20（M0–M6） |
 | 單卡目標用量 | ~週用量 10%（見 AGENTS §6） |
 
@@ -22,8 +22,8 @@
 - [x] **M2** 村民 AI
 - [x] **M3** 最小可視原型
 - [x] **M4** HUD 與控制
-- [ ] **M5** 視覺 polish
-- [ ] **M6** Seed / 統計 / Wasm 收斂
+- [x] **M5** 視覺 polish（含 Vis-A/B/C）
+- [x] **M6** 收斂：Wasm 可玩（T1/T2 取消，T3 完成）
 
 ---
 
@@ -524,52 +524,26 @@ Minimal StatsRecorder fields if missing. Stop when DoD is met.
 
 ## M6-T1 — 三預設 Seed + 參數核對
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：cancelled（2026-07-24）— 跳過；直接收斂 Wasm（M6-T3）  
 - **依賴**：M5-T3  
-- **用量**：~10%  
 - **目標**：UI 可選 3 個預設 seed；參數表與 GDD §11 一致。  
-- **範圍**：預設 seed 常數、UI 快捷鈕、對 `SimConfig` 做一次對表測試  
-- **非範圍**：線上排行榜
-
-**DoD**：
-- [ ] 3 seed 可一鍵載入
-- [ ] Config 對表測試通過
-
-**Grok Prompt**：
-```
-Implement tasks.md M6-T1 only.
-Three preset seeds + SimConfig alignment tests vs GDD §11.
-Stop when DoD is met.
-```
+- **備註**：可日後再開卡；非 v0.1 收斂必要項。
 
 ---
 
 ## M6-T2 — 每日統計與簡易 Replay 記錄
 
-- [ ] **狀態**：todo  
+- [x] **狀態**：cancelled（2026-07-24）— 跳過；直接收斂 Wasm（M6-T3）  
 - **依賴**：M6-T1  
-- **用量**：~10%  
 - **目標**：每日結束記錄糧食、人口、土地組成；可查看歷史列表。  
-- **範圍**：`StatsRecorder` 日摘要 list；UI 簡單列表或文字 log  
-- **非範圍**：影格級 replay 影片、分享連線
-
-**DoD**：
-- [ ] 跑 5 日後有 5 筆日摘要
-- [ ] 測試 recorder 行為
-
-**Grok Prompt**：
-```
-Implement tasks.md M6-T2 only.
-Daily stats log + simple in-app history list.
-Tests for recorder. Stop when DoD is met.
-```
+- **備註**：`StatsRecorder` 已有累計欄位；日摘要列表留待後續。
 
 ---
 
 ## M6-T3 — Wasm 可玩 parity
 
-- [ ] **狀態**：todo  
-- **依賴**：M6-T2  
+- [x] **狀態**：done（2026-07-24）  
+- **依賴**：M5-T3（原依賴 M6-T2 已取消，改接 M5）  
 - **用量**：~10%  
 - **目標**：瀏覽器可玩同一套模擬，無明顯平台崩潰。  
 - **範圍**：
@@ -579,16 +553,9 @@ Tests for recorder. Stop when DoD is met.
 - **非範圍**：新功能
 
 **DoD**：
-- [ ] `./gradlew :composeApp:compileKotlinWasmJs` 成功
-- [ ] `./gradlew :composeApp:wasmJsBrowserDevelopmentRun` 可操作 play/pause（手動）
-- [ ] Desktop 回歸仍可用
-
-**Grok Prompt**：
-```
-Implement tasks.md M6-T3 only.
-Make wasmJs browser run playable; fix platform issues only.
-Verify desktop still works. Stop when DoD is met.
-```
+- [x] `./gradlew :composeApp:compileKotlinWasmJs` 成功
+- [x] `./gradlew :composeApp:wasmJsBrowserDevelopmentRun` 可操作 play/pause（**手動驗通過**）
+- [x] Desktop 回歸仍可用
 
 ---
 
@@ -658,3 +625,4 @@ Do not add features. Stop when fixed and tests pass.
 | 2026-07-24 | Vis-C：MyTopMenuBar + 全幅 Board + Info/Settings Dialog + hover tip |
 | 2026-07-24 | M5-T2：Agent mode 頭上徽章（休探墾收回補亡）+ bob/pulse；下一張 M5-T3 |
 | 2026-07-24 | M5-T3：可採收田地脈衝高亮 + 開墾/採收 WorkFx；下一張 M6-T1 |
+| 2026-07-24 | M6-T1 / M6-T2 取消（跳過 preset seed 與日摘要 UI）；M6-T3 Wasm 可玩手動驗通過；M6 結束 |
